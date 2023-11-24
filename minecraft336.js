@@ -13,7 +13,7 @@ var world = new CS336Object();
 
 var camera = new Camera(30, 1.5);
 
-var imageFilename = "check64border.png";
+var imageFilename = "./textures/check64border.png";
 
 // generic white light
 var lightPropElements = new Float32Array([
@@ -279,69 +279,34 @@ function drawModel(model, matrix) {
 
     gl.disableVertexAttribArray(positionIndex);
     gl.disableVertexAttribArray(normalIndex);
-
-
-    // // bind the shader for drawing axes
-    // gl.useProgram(colorShader);
-
-    // // get the index for the a_Position attribute defined in the vertex shader
-    // positionIndex = gl.getAttribLocation(colorShader, 'a_Position');
-    // if (positionIndex < 0) {
-    //     console.log('Failed to get the storage location of a_Position');
-    //     return;
-    // }
-
-    // var colorIndex = gl.getAttribLocation(colorShader, 'a_Color');
-    // if (colorIndex < 0) {
-    //     console.log('Failed to get the storage location of a_Color');
-    //     return;
-    // }
-
-    // // "enable" the a_position attribute
-    // gl.enableVertexAttribArray(positionIndex);
-    // gl.enableVertexAttribArray(colorIndex);
-
-
-    // // draw axes (not transformed by model transformation)
-    // gl.bindBuffer(gl.ARRAY_BUFFER, axisBuffer);
-    // gl.vertexAttribPointer(positionIndex, 3, gl.FLOAT, false, 0, 0);
-    // gl.bindBuffer(gl.ARRAY_BUFFER, axisColorBuffer);
-    // gl.vertexAttribPointer(colorIndex, 4, gl.FLOAT, false, 0, 0);
-    // gl.bindBuffer(gl.ARRAY_BUFFER, null);
-
-    // // set transformation to projection * view only
-    // loc = gl.getUniformLocation(colorShader, "transform");
-    // transform = new THREE.Matrix4().multiply(projection).multiply(view);
-    // gl.uniformMatrix4fv(loc, false, transform.elements);
-
-    // // draw axes
-    // gl.drawArrays(gl.LINES, 0, 6);
-
-    // unbind shader and "disable" the attribute indices
-    // (not really necessary when there is only one shader)
-    // gl.disableVertexAttribArray(positionIndex);
-    // gl.disableVertexAttribArray(colorIndex);
     gl.useProgram(null);
 }
 
 function draw() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BIT);
 
-    let cube = new CS336Object(drawCube);
-    cube.setPosition(0, 0, 0);
-    world.addChild(cube);
+    let chunk = new Chunk(0, 0, world)
+    let chunk2 = new Chunk(1, 0, world)
 
-    let cube2 = new CS336Object(drawCube);
-    cube2.setPosition(1, 0, 0);
-    world.addChild(cube2);
+    new Block(0, 0, 0, chunk);
+    new Block(0, 0, 1, chunk);
+    new Block(1, 0, 0, chunk);
+    new Block(1, 0, 1, chunk);
 
-    let cube3 = new CS336Object(drawCube);
-    cube3.setPosition(0, 0, 1);
-    world.addChild(cube3);
+    new Block(0, 0, 0, chunk2);
+    new Block(0, 0, 1, chunk2);
+    new Block(1, 0, 0, chunk2);
+    new Block(1, 0, 1, chunk2);
 
-    let cube4 = new CS336Object(drawCube);
-    cube4.setPosition(1, 0, 1);
-    world.addChild(cube4);
+    new Block(0, 1, 0, chunk);
+    new Block(0, 1, 1, chunk);
+    new Block(1, 1, 0, chunk);
+    new Block(1, 1, 1, chunk);
+
+    new Block(0, 1, 0, chunk2);
+    new Block(0, 1, 1, chunk2);
+    new Block(1, 1, 0, chunk2);
+    new Block(1, 1, 1, chunk2);
 
     world.render(new THREE.Matrix4());
 }
