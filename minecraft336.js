@@ -9,9 +9,11 @@ var colorShader;
 // handle to the texture object on the GPU
 var textureHandle;
 
-var world = new CS336Object();
+var world = new World();
+//var chunk = new Chunk(0, 0, world)
 
 var camera = new Camera(30, 1.5);
+camera.setPosition(0, Chunk.WORLD_HEIGHT / 2, 10);
 
 var imageFilename = "./textures/check64border.png";
 
@@ -104,6 +106,7 @@ void main()
   vec4 specularLight = vec4(lightProperties[2], 1.0);
 
   // sample from the texture at interpolated texture coordinate
+  //vec4 color = vec4(1.0, 0.0, 0.0, 1.0);
    vec4 color = texture2D(sampler, fTexCoord);
    //vec4 color = texture2D(sampler, vec2(fTexCoord.s * 4.0, fTexCoord.t * 4.0));
 
@@ -164,6 +167,13 @@ void main()
   gl_FragColor = color;
 }
 `;
+
+function createNDimArray(dimensions) {
+    var t, i = 0, s = dimensions[0], arr = new Array(s);
+    if ( dimensions.length < 3 ) for ( t = dimensions[1] ; i < s ; ) arr[i++] = new Array(t);
+    else for ( t = dimensions.slice(1) ; i < s ; ) arr[i++] = createNDimArray(t);
+    return arr;
+}
 
 //translate keypress events to strings
 //from http://javascript.info/tutorial/keyboard-events
@@ -284,29 +294,6 @@ function drawModel(model, matrix) {
 
 function draw() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BIT);
-
-    let chunk = new Chunk(0, 0, world)
-    let chunk2 = new Chunk(1, 0, world)
-
-    new Block(0, 0, 0, chunk);
-    new Block(0, 0, 1, chunk);
-    new Block(1, 0, 0, chunk);
-    new Block(1, 0, 1, chunk);
-
-    new Block(0, 0, 0, chunk2);
-    new Block(0, 0, 1, chunk2);
-    new Block(1, 0, 0, chunk2);
-    new Block(1, 0, 1, chunk2);
-
-    new Block(0, 1, 0, chunk);
-    new Block(0, 1, 1, chunk);
-    new Block(1, 1, 0, chunk);
-    new Block(1, 1, 1, chunk);
-
-    new Block(0, 1, 0, chunk2);
-    new Block(0, 1, 1, chunk2);
-    new Block(1, 1, 0, chunk2);
-    new Block(1, 1, 1, chunk2);
 
     world.render(new THREE.Matrix4());
 }
