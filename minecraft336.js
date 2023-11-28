@@ -12,12 +12,11 @@ var model;
 
 var world = new World();
 
-var camera = new Camera(30, 1.5);
-
-//camera is set to center of world
-camera.setPosition((World.WORLD_SIZE / 2) * Chunk.CHUNK_SIZE_X, Chunk.WORLD_HEIGHT / 2, (World.WORLD_SIZE / 2) * Chunk.CHUNK_SIZE_Z);
+var camera;
 
 var imageFilename = "./textures/check64border.png";
+
+var imageNames = ["./textures/sky.png","./textures/sky.png","./textures/sky.png","./textures/sky.png","./textures/sky.png","./textures/sky.png"];
 
 // generic white light
 var lightPropElements = new Float32Array([
@@ -181,18 +180,107 @@ function createNDimArray(dimensions) {
 //from http://javascript.info/tutorial/keyboard-events
 function getChar(event) {
     if (event.which == null) {
-        return String.fromCharCode(event.keyCode) // IE
-    } else if (event.which != 0 && event.charCode != 0) {
-        return String.fromCharCode(event.which)   // the rest
+     return String.fromCharCode(event.keyCode) // IE
+    } else if (event.which!=0 && event.charCode!=0) {
+     return String.fromCharCode(event.which)   // the rest
     } else {
-        return null // special key
+     return null // special key
     }
-}
+    }
+    
+    function cameraControl(c, ch)
+    {
+      var distance = c.position.length();
+      var q, q2;
 
-function handleKeyPress(event) {
-    var ch = getChar(event);
-    camera.keyControl(ch);
-}
+      console.log(ch);
+    
+      switch (ch)
+      {
+      // camera controls
+      case 'w':
+        c.translateZ(-0.1);
+        return true;
+      case 'a':
+        c.translateX(-0.1);
+        return true;
+      case 's':
+        c.translateZ(0.1);
+        return true;
+      case 'd':
+        c.translateX(0.1);
+        return true;
+      case 'r':
+        c.translateY(0.1);
+        return true;
+      case 'f':
+        c.translateY(-0.1);
+        return true;
+      case 'j':
+        // need to do extrinsic rotation about world y axis, so multiply camera's quaternion
+        // on left
+        q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0),  5 * Math.PI / 180);
+        c.applyQuaternion(q);
+        return true;
+      case 'l':
+        q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0),  -5 * Math.PI / 180);
+        c.applyQuaternion(q);
+        return true;
+      case 'i':
+        // intrinsic rotation about camera's x-axis
+        c.rotateX(5 * Math.PI / 180);
+        return true;
+      case 'k':
+        c.rotateX(-5 * Math.PI / 180);
+        return true;
+      case 'O':
+        c.lookAt(new THREE.Vector3(0, 0, 0));
+        return true;
+      case 'S':
+        c.fov = Math.min(80, c.fov + 5);
+        c.updateProjectionMatrix();
+        return true;
+      case 'W':
+        c.fov = Math.max(5, c.fov  - 5);
+        c.updateProjectionMatrix();
+        return true;
+    
+        // alternates for arrow keys
+      case 'J':
+        //this.orbitLeft(5, distance)
+        c.translateZ(-distance);
+        q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0),  5 * Math.PI / 180);
+        c.applyQuaternion(q);
+        c.translateZ(distance);
+        return true;
+      case 'L':
+        //this.orbitRight(5, distance)
+        c.translateZ(-distance);    
+        q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0),  -5 * Math.PI / 180);
+        c.applyQuaternion(q);
+        c.translateZ(distance);
+        return true;
+      case 'I':
+        //this.orbitUp(5, distance)
+        c.translateZ(-distance);
+        c.rotateX(-5 * Math.PI / 180);
+        c.translateZ(distance);
+        return true;
+      case 'K':
+        //this.orbitDown(5, distance)
+        c.translateZ(-distance);
+        c.rotateX(5 * Math.PI / 180);
+        c.translateZ(distance);
+        return true;
+      }
+      return false;
+    }
+    
+    function handleKeyPress(event)
+    {
+      var ch = getChar(event);
+      if (cameraControl(camera, ch)) return;
+    }
 
 function drawCube(matrix) {
 
@@ -234,8 +322,8 @@ function drawCube(matrix) {
     gl.vertexAttribPointer(texCoordIndex, 2, gl.FLOAT, false, 0, 0);
 
     // set uniform in shader for projection * view * model transformation
-    var projection = camera.getProjection();
-    var view = camera.getView();
+    var projection = camera.projectionMatrix;
+    var view = camera.matrixWorldInverse;
     var loc = gl.getUniformLocation(lightingShader, "model");
     gl.uniformMatrix4fv(loc, false, matrix.elements);
     loc = gl.getUniformLocation(lightingShader, "view");
@@ -273,26 +361,42 @@ function drawCube(matrix) {
 }
 
 function draw() {
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BIT);
+    //gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BIT);
 
     world.render(new THREE.Matrix4());
 }
 
 async function main() {
 
-    var image = await loadImagePromise(imageFilename);
+   var image = await loadImagePromise(imageFilename);
 
-    model = getModelData(new THREE.BoxGeometry());
+   model = getModelData(new THREE.BoxGeometry());
 
-    gl = getGraphicsContext("theCanvas");
-    gl.clearColor(0.9, 0.9, 0.9, 1.0);
+    window.onkeypress = handleKeyPress;
+
+    var scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera( 45, 1.5, 0.1, 1000 );
+
+    camera.setViewOffset(1920, 1080, 0, 0, 1920, 1080);
+  
+    var ourCanvas = document.getElementById('theCanvas');
+    
+  
+    // load the six images
+    var ourCubeMap = new THREE.CubeTextureLoader().load( imageNames );
+  
+    // this is too easy, don't need a mesh or anything
+    scene.background = ourCubeMap;
+
+   gl = getGraphicsContext("theCanvas");
+   gl.clearColor(0.9, 0.9, 0.9, 1.0);
 
     gl.enable(gl.DEPTH_TEST);
 
-    gl.enable(gl.CULL_FACE);
-    gl.cullFace(gl.BACK);
+    // gl.enable(gl.CULL_FACE);
+    // gl.cullFace(gl.FRONT);
 
-    // load and compile the shader pair
+    //load and compile the shader pair
     lightingShader = createShaderProgram(gl, vLightingShaderSource, fLightingShaderSource);
     colorShader = createShaderProgram(gl, vColorShaderSource, fColorShaderSource);
 
@@ -307,7 +411,7 @@ async function main() {
 
     texCoordBuffer = createAndLoadBuffer(model.texCoords);
 
-    window.onkeypress = handleKeyPress;
+     window.onkeypress = handleKeyPress;
 
     // ask the GPU to create a texture object
     textureHandle = createAndLoadTexture(image);
@@ -317,10 +421,31 @@ async function main() {
     gl.bindTexture(gl.TEXTURE_2D, textureHandle);
     gl.generateMipmap(gl.TEXTURE_2D);
 
-    var animate = function () {
-        draw();
-        requestAnimationFrame(animate);
+
+    var params = {
+        canvas : ourCanvas,
+        context : gl
     }
 
-    animate();
+    var renderer = new THREE.WebGLRenderer(params);
+
+    const material = new THREE.ShaderMaterial( {
+
+        uniforms: {
+            time: { value: 1.0 },
+            resolution: { value: new THREE.Vector2() }
+        },
+    
+        vertexShader: vColorShaderSource,
+        fragmentShader: fColorShaderSource
+    
+    } ); 
+
+    var render = function () {
+        requestAnimationFrame( render );
+         renderer.render(scene, camera);
+        // draw();
+      };
+    
+      render();
 }
