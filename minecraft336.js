@@ -8,12 +8,14 @@ var lightingShader;
 var colorShader;
 // handle to the texture object on the GPU
 var textureHandle;
+var model;
 
 var world = new World();
-//var chunk = new Chunk(0, 0, world)
 
 var camera = new Camera(30, 1.5);
-camera.setPosition(0, Chunk.WORLD_HEIGHT / 2, 10);
+
+//camera is set to center of world
+camera.setPosition((World.WORLD_SIZE / 2) * Chunk.CHUNK_SIZE_X, Chunk.WORLD_HEIGHT / 2, (World.WORLD_SIZE / 2) * Chunk.CHUNK_SIZE_Z);
 
 var imageFilename = "./textures/check64border.png";
 
@@ -192,29 +194,7 @@ function handleKeyPress(event) {
     camera.keyControl(ch);
 }
 
-function loadBufferData(model) {
-    // load the vertex data into GPU memory
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, model.vertices, gl.STATIC_DRAW);
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
-
-    // buffer for vertex normals
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexNormalBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, model.normals, gl.STATIC_DRAW);
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
-
-    // buffer for texture coords
-    gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, model.texCoords, gl.STATIC_DRAW);
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
-}
-
-function drawModel(model, matrix) {
-
-    model = getModelData(model);
-
-    loadBufferData(model);
-
+function drawCube(matrix) {
 
     // bind the shader
     gl.useProgram(lightingShader);
@@ -298,38 +278,34 @@ function draw() {
     world.render(new THREE.Matrix4());
 }
 
-function drawCube(matrix) {
-    let cube = new THREE.BoxGeometry();
-    drawModel(cube, matrix);
-}
-
 async function main() {
 
     var image = await loadImagePromise(imageFilename);
 
-    if (camera == null) {
-        camera = new Camera(30, 1.5);
-    }
+    model = getModelData(new THREE.BoxGeometry());
 
     gl = getGraphicsContext("theCanvas");
     gl.clearColor(0.9, 0.9, 0.9, 1.0);
 
     gl.enable(gl.DEPTH_TEST);
 
+    gl.enable(gl.CULL_FACE);
+    gl.cullFace(gl.BACK);
+
     // load and compile the shader pair
     lightingShader = createShaderProgram(gl, vLightingShaderSource, fLightingShaderSource);
     colorShader = createShaderProgram(gl, vColorShaderSource, fColorShaderSource);
 
     // load the vertex data into GPU memory
-    vertexBuffer = gl.createBuffer();
+    vertexBuffer = createAndLoadBuffer(model.vertices);
 
     // buffer for vertex normals
-    vertexNormalBuffer = gl.createBuffer();
+    vertexNormalBuffer = createAndLoadBuffer(model.normals);
 
     // buffer for vertex colors
     vertexColorBuffer = gl.createBuffer();
 
-    texCoordBuffer = gl.createBuffer();
+    texCoordBuffer = createAndLoadBuffer(model.texCoords);
 
     window.onkeypress = handleKeyPress;
 
