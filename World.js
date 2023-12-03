@@ -1,6 +1,6 @@
 class World extends CS336Object {
 
-    static WORLD_SIZE = 5;
+    static WORLD_SIZE = 6;
 
     constructor() {
         super();

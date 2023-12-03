@@ -4,3 +4,7 @@ function createNDimArray(dimensions) {
     else for ( t = dimensions.slice(1) ; i < s ; ) arr[i++] = createNDimArray(t);
     return arr;
 }
+
+function changeScale(val, oldLow, oldHigh, newLow, newHigh) {
+    return (val - oldLow) * (newHigh - newLow) / (oldHigh - oldLow) + newLow;
+}

@@ -10,9 +10,13 @@
 
 <script>
     test = function() {
-        let chunk = new Chunk(0, 0, new CS336Object());
+        perlin.seed();
+        let chunk = new Chunk(17, 36, new CS336Object());
         chunk.createHeightMap();
         console.log(chunk.height);
+
+        let val = changeScale(212, 32, 212, 0, 100);
+        console.log(val);
     }
 
     window.onload = test;
