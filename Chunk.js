@@ -8,6 +8,7 @@ class Chunk extends CS336Object {
         super();
 
         this.blocks = createNDimArray([Chunk.CHUNK_SIZE_X, Chunk.WORLD_HEIGHT, Chunk.CHUNK_SIZE_Z]);
+        this.height = createNDimArray([Chunk.CHUNK_SIZE_X, Chunk.CHUNK_SIZE_Z]);
 
         for (let x = 0; x < Chunk.CHUNK_SIZE_X; ++x) {
             for (let y = 0; y < Chunk.WORLD_HEIGHT; ++y) {
@@ -20,7 +21,7 @@ class Chunk extends CS336Object {
 
         this.setPosition(Chunk.CHUNK_SIZE_X * x, 0, Chunk.CHUNK_SIZE_Z * z);
 
-        this.createBlocks();
+      //  this.createBlocks();
 
         world.addChild(this);
 
@@ -29,14 +30,24 @@ class Chunk extends CS336Object {
         this.z = z;
     }
 
+    createHeightMap() {
+        for (let x = 0; x < Chunk.CHUNK_SIZE_X; ++x) {
+            for (let z = 0; z < Chunk.CHUNK_SIZE_Z; ++z) {
+                let y = perlin.get(this.x * Chunk.CHUNK_SIZE_X + x, this.z * Chunk.CHUNK_SIZE_Z + z)
+                this.height[x, z] = y;
+            }
+        }
+    }
+
     createBlocks() {
         
         for (let x = 0; x < Chunk.CHUNK_SIZE_X; ++x) {
-            for (let y = Chunk.WORLD_HEIGHT / 2 - 1; y > -1; --y) {
-                for (let z = 0; z < Chunk.CHUNK_SIZE_Z; ++z) {
-                    this.blocks[x][y][z] = new Block(x, y, z, this);
-                    //console.log(x, y, z);
-                }
+            for (let z = 0; z < Chunk.CHUNK_SIZE_Z; ++z) {
+                let z = perlin.get(this.x * CHUNK_SIZE_X, this.y * CHUNK_SIZE_Z)
+                
+
+                this.blocks[x][y][z] = new Block(x, y, z, this);
+                //console.log(x, y, z);
             }
         }
     }
