@@ -17,7 +17,21 @@ var camera = new Camera(30, 1.5);
 //camera is set to center of world
 camera.setPosition((World.WORLD_SIZE / 2) * Chunk.CHUNK_SIZE_X, Chunk.WORLD_HEIGHT / 2, (World.WORLD_SIZE / 2) * Chunk.CHUNK_SIZE_Z);
 
-var imageFilename = "./textures/check64border.png";
+var imageFilename = "./textures/grass64top.png";
+
+//Blocks.GRASS to call these MFs
+const Blocks = {
+    BEDROCK : 0,
+    STONE : 1,
+    ORE : 2,
+    GRAVEL : 3,
+    DIRT : 4,
+    GRASS : 5,
+    GRASSTOP : 6,
+    SAND : 7,
+    LOG : 8,
+    LEAVES : 9
+}
 
 // generic white light
 var lightPropElements = new Float32Array([
