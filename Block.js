@@ -17,6 +17,9 @@ class Block extends CS336Object {
 
         if (this.z - 1 < 0 && this.chunk.z > 0) {
             let neighborChunk = this.chunk.world.chunks[this.chunk.x][this.chunk.z - 1];
+            if (neighborChunk == null) {
+                return null;
+            }
             neighbor = neighborChunk.blocks[this.x][this.y][Chunk.CHUNK_SIZE_Z - 1];
         }
         else if (this.z - 1 < 0) {
@@ -33,6 +36,9 @@ class Block extends CS336Object {
 
         if (this.z + 1 > Chunk.CHUNK_SIZE_Z - 1 && this.chunk.z < World.WORLD_SIZE - 1) {
             let neighborChunk = this.chunk.world.chunks[this.chunk.x][this.chunk.z + 1];
+            if (neighborChunk == null) {
+                return null;
+            }
             neighbor = neighborChunk.blocks[this.x][this.y][0];
         }
         else if (this.z + 1 > Chunk.CHUNK_SIZE_Z - 1) {
@@ -49,6 +55,9 @@ class Block extends CS336Object {
 
         if (this.x + 1 > Chunk.CHUNK_SIZE_X - 1 && this.chunk.x < World.WORLD_SIZE - 1) {
             let neighborChunk = this.chunk.world.chunks[this.chunk.x + 1][this.chunk.z];
+            if (neighborChunk == null) {
+                return null;
+            }
             neighbor = neighborChunk.blocks[0][this.y][this.z];
         }
         else if (this.x + 1 > Chunk.CHUNK_SIZE_X - 1) {
@@ -66,6 +75,9 @@ class Block extends CS336Object {
 
         if (this.x - 1 < 0 && this.chunk.x > 0) {
             let neighborChunk = this.chunk.world.chunks[this.chunk.x - 1][this.chunk.z];
+            if (neighborChunk == null) {
+                return null;
+            }
             neighbor = neighborChunk.blocks[Chunk.CHUNK_SIZE_X - 1][this.y][this.z];
         }
         else if (this.x - 1 < 0) {

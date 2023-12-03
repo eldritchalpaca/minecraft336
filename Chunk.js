@@ -2,7 +2,7 @@ class Chunk extends CS336Object {
 
     static CHUNK_SIZE_X = 16;
     static CHUNK_SIZE_Z = 16;
-    static WORLD_HEIGHT = 8;
+    static WORLD_HEIGHT = 64;
 
     constructor(x, z, world) {
         super();
@@ -29,7 +29,7 @@ class Chunk extends CS336Object {
 
         this.createBlocks();
 
-        world.addChild(this);        
+        world.addChild(this);
     }
 
     createHeightMap() {
@@ -66,6 +66,12 @@ class Chunk extends CS336Object {
                 }
             }
         }
+    }
+
+    getHighestY(x, z) {
+        let y;
+        for (y = 0; this.blocks[x][y][z] != null; ++y);
+        return y;
     }
 
 

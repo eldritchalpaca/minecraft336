@@ -12,11 +12,6 @@ var model;
 
 var world = new World();
 
-var camera = new Camera(30, 1.5);
-
-//camera is set to center of world
-camera.setPosition((World.WORLD_SIZE / 2) * Chunk.CHUNK_SIZE_X, Chunk.WORLD_HEIGHT / 2, (World.WORLD_SIZE / 2) * Chunk.CHUNK_SIZE_Z);
-
 var imageFilename = "./textures/grass64top.png";
 
 //Blocks.GRASS to call these MFs
@@ -198,7 +193,7 @@ function getChar(event) {
 
 function handleKeyPress(event) {
     var ch = getChar(event);
-    camera.keyControl(ch);
+    world.keyControl(ch);
 }
 
 function drawCube(matrix) {
@@ -241,8 +236,8 @@ function drawCube(matrix) {
     gl.vertexAttribPointer(texCoordIndex, 2, gl.FLOAT, false, 0, 0);
 
     // set uniform in shader for projection * view * model transformation
-    var projection = camera.getProjection();
-    var view = camera.getView();
+    var projection = world.camera.getProjection();
+    var view = world.camera.getView();
     var loc = gl.getUniformLocation(lightingShader, "model");
     gl.uniformMatrix4fv(loc, false, matrix.elements);
     loc = gl.getUniformLocation(lightingShader, "view");
