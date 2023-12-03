@@ -1,0 +1,24 @@
+<script src="./util/three.js"></script>
+<script src="./util/cs336util.js"></script>
+<script src="./util/CS336Object.js"></script>
+<script src="./util/Camera.js"></script>
+<script src="./util/util.js"></script>
+<script src="./util/perlin.js"></script>
+<script src="World.js"></script>
+<script src="Chunk.js"></script>
+<script src="Block.js"></script>
+
+<script>
+    test = function() {
+        perlin.seed();
+        let chunk = new Chunk(17, 36, new CS336Object());
+        chunk.createHeightMap();
+        console.log(chunk.height);
+
+        let val = changeScale(212, 32, 212, 0, 100);
+        console.log(val);
+    }
+
+    window.onload = test;
+</script>
+

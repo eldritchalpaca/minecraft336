@@ -1,6 +1,6 @@
 class World extends CS336Object {
 
-    static WORLD_SIZE = 5;
+    static WORLD_SIZE = 6;
 
     constructor() {
         super();
@@ -10,6 +10,7 @@ class World extends CS336Object {
         this.chunks = createNDimArray([World.WORLD_SIZE, World.WORLD_SIZE]);
 
         this.createChunks();
+
     }
 
     createChunks() {
