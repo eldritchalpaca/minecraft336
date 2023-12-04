@@ -11,18 +11,132 @@ var model;
 
 var world = new World();
 
-const textures = [
-    "./textures/bedrock64.png",
-    "./textures/stone64.png",
-    "./textures/ore64.png",
-    "./textures/gravel64.png",
-    "./textures/dirt64.png",
-    "./textures/grass64.png",
-    "./textures/grass64top.png",
-    "./textures/sand64.png",
-    "./textures/log64.png",
-    "./textures/leaves.png"
-];
+var bedrockImage    = "./textures/bedrock64.png";
+var stoneImage      = "./textures/stone64.png";
+var oreImage        = "./textures/ore64.png";
+var gravelImage     = "./textures/gravel64.png";
+var dirtImage       = "./textures/dirt64.png";
+var grassImage      = "./textures/grass64.png";
+var grassTopImage   = "./textures/grass64Top.png";
+var sandImage       = "./textures/sand64.png";
+var logImage        = "./textures/log64.png";
+var leavesImage     = "./textures/leaves.png";
+
+var bedrock = []
+var stone = []
+var ore = []
+var gravel = []
+var dirt = []
+var grass = []
+var sand = []
+var log = []
+var leaves = []
+var textures = [];
+
+async function loadTextures() {
+    bedrockImage    = await loadImagePromise(bedrockImage);
+    stoneImage      = await loadImagePromise(stoneImage);
+    oreImage        = await loadImagePromise(oreImage);
+    gravelImage     = await loadImagePromise(gravelImage);
+    dirtImage       = await loadImagePromise(dirtImage);
+    grassImage      = await loadImagePromise(grassImage);
+    grassTopImage   = await loadImagePromise(grassTopImage);
+    sandImage       = await loadImagePromise(sandImage);
+    logImage        = await loadImagePromise(logImage);
+    leavesImage     = await loadImagePromise(leavesImage);
+
+    bedrock = [
+        bedrockImage,
+        bedrockImage,
+        bedrockImage,
+        bedrockImage,
+        bedrockImage,
+        bedrockImage
+    ]
+    stone = [
+        stoneImage,
+        stoneImage,
+        stoneImage,
+        stoneImage,
+        stoneImage,
+        stoneImage
+    ]
+    ore = [
+        oreImage,
+        oreImage,
+        oreImage,
+        oreImage,
+        oreImage,
+        oreImage
+    ]
+    gravel = [
+        gravelImage,
+        gravelImage,
+        gravelImage,
+        gravelImage,
+        gravelImage,
+        gravelImage
+    ]
+    dirt = [
+        dirtImage,
+        dirtImage,
+        dirtImage,
+        dirtImage,
+        dirtImage,
+        dirtImage
+    ]
+    grass = [
+        
+        grassImage,
+        grassImage,
+        grassTopImage,
+        dirtImage,
+        grassImage,
+        grassImage,
+        
+    ]
+    sand = [
+        sandImage,
+        sandImage,
+        sandImage,
+        sandImage,
+        sandImage,
+        sandImage
+    ]
+    log = [
+        logImage,
+        logImage,
+        logImage,
+        logImage,
+        logImage,
+        logImage
+    ]
+    leaves = [
+        leavesImage,
+        leavesImage,
+        leavesImage,
+        leavesImage,
+        leavesImage,
+        leavesImage
+    ]
+    
+    textures = [
+        bedrock,
+        stone,
+        ore,
+        gravel,
+        dirt,
+        grass,
+        sand,
+        log,
+        leaves
+    ];
+
+    for (let i = 0; i < textures.length; ++i) {
+        textureHandles[i] = createAndLoadCubeTexture(textures[i], i);
+    }
+    
+}
 
 // vertex shader
 const vshaderSource = `
@@ -30,10 +144,12 @@ uniform mat4 transform;
 attribute vec4 a_Position;
 attribute vec2 a_TexCoord;
 varying vec2 fTexCoord;
+varying vec3 fTexVector;
 void main()
 {
   // pass through so the value gets interpolated
   fTexCoord = a_TexCoord;
+  fTexVector = a_Position.xyz;
   gl_Position = transform * a_Position;
 }
 `;
@@ -41,13 +157,14 @@ void main()
 // fragment shader
 const fshaderSource = `
 precision mediump float;
-uniform sampler2D sampler;
+uniform samplerCube sampler;
 varying vec2 fTexCoord;
+varying vec3 fTexVector;
 void main()
 {
   // sample from the texture at the interpolated texture coordinate,
   // and use the value directly as the surface color
-  vec4 color = texture2D(sampler, fTexCoord);
+  vec4 color = textureCube(sampler, fTexVector);
   //vec4 color = vec4(1.0, 0.0, 0.0, 1.0);
   gl_FragColor = color;
 }
@@ -109,7 +226,7 @@ function drawCube(matrix, texIndex) {
 
     var textureUnit = texIndex;
     gl.activeTexture(gl.TEXTURE0 + textureUnit);
-    gl.bindTexture(gl.TEXTURE_2D, textureHandles[textureUnit]);
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, textureHandles[textureUnit]);
 
     // sampler value in shader is set to index for texture unit
     gl.uniform1i(loc, textureUnit);
@@ -119,7 +236,7 @@ function drawCube(matrix, texIndex) {
     gl.disableVertexAttribArray(positionIndex);
     gl.disableVertexAttribArray(texCoordIndex);
     gl.useProgram(null);
-    gl.bindTexture(gl.TEXTURE_2D, null);
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, null);
 }
 
 function draw() {
@@ -132,32 +249,7 @@ async function main() {
 
     gl = getGraphicsContext("theCanvas");
 
-    for(let i = 0; i < textures.length; i++) {
-        let image = await loadImagePromise(textures[i]);
-        // ask the GPU to create a texture object
-        let textureHandle = gl.createTexture();
-    
-        // choose a texture unit to use during setup, defaults to zero
-        // (can use a different one when drawing)
-        // max value is MAX_COMBINED_TEXTURE_IMAGE_UNITS
-        gl.activeTexture(gl.TEXTURE0 + i);
-    
-        // bind the texture
-        gl.bindTexture(gl.TEXTURE_2D, textureHandle);
-    
-        // load the image bytes to the currently bound texture, flipping the vertical
-        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-    
-        // set default parameters to usable values
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    
-        // unbind
-        gl.bindTexture(gl.TEXTURE_2D, null);
-
-        textureHandles[i] = textureHandle;
-    }
+    await loadTextures();
 
     model = getModelData(new THREE.BoxGeometry());
     gl.clearColor(0.9, 0.9, 0.9, 1.0);

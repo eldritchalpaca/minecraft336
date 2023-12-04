@@ -62,7 +62,7 @@ class Chunk extends CS336Object {
         for (let x = 0; x < Chunk.CHUNK_SIZE_X; ++x) {
             for (let z = 0; z < Chunk.CHUNK_SIZE_Z; ++z) {
                 for (let y = 0; y < this.height[x][z]; ++y) {
-                    this.blocks[x][y][z] = new Block(x, y, z, this, Block.Type.BEDROCK);
+                    this.blocks[x][y][z] = new Block(x, y, z, this, Block.Type.GRASS);
                 }
             }
         }

@@ -171,7 +171,7 @@ function getGraphicsContext(canvasId) {
   }
   
   // allocates texture memory and loads the given image
-  function createAndLoadTexture(image)
+  function createAndLoadTexture(image, index)
   {
     // ask the GPU to create a texture object
     let textureHandle = gl.createTexture();
@@ -179,7 +179,7 @@ function getGraphicsContext(canvasId) {
     // choose a texture unit to use during setup, defaults to zero
     // (can use a different one when drawing)
     // max value is MAX_COMBINED_TEXTURE_IMAGE_UNITS
-    gl.activeTexture(gl.TEXTURE0);
+    gl.activeTexture(gl.TEXTURE0 + index);
   
     // bind the texture
     gl.bindTexture(gl.TEXTURE_2D, textureHandle);
@@ -201,13 +201,13 @@ function getGraphicsContext(canvasId) {
   // allocates texture memory and loads the given images
   // 'images' should be a 6-element array of images
   // in the order [+x, -x, +y, -y, +z, -z]
-  function createAndLoadCubeTexture(images)
+  function createAndLoadCubeTexture(images, index)
   {
     // ask the GPU to create a texture object
     let textureHandle = gl.createTexture();
   
     // choose a texture unit to use during setup, defaults to zero
-    gl.activeTexture(gl.TEXTURE0);
+    gl.activeTexture(gl.TEXTURE0 + index);
   
     // bind the texture to the CUBE_MAP binding point
     gl.bindTexture(gl.TEXTURE_CUBE_MAP, textureHandle);
