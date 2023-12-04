@@ -14,7 +14,6 @@ var world = new World();
 
 var imageFilename = "./textures/grass64top.png";
 
-//Blocks.GRASS to call these MFs
 const Blocks = {
     BEDROCK : 0,
     STONE : 1,
@@ -27,6 +26,19 @@ const Blocks = {
     LOG : 8,
     LEAVES : 9
 }
+
+const textures = [
+    "./textures/bedrock64.png",
+    "./textures/stone64.png",
+    "./textures/ore64.png",
+    "./textures/gravel64.png",
+    "./textures/dirt64.png",
+    "./textures/grass64.png",
+    "./textures/grass64top.png",
+    "./textures/sand64.png",
+    "./textures/log64.png",
+    "./textures/leaves.png"
+];
 
 // generic white light
 var lightPropElements = new Float32Array([
@@ -89,7 +101,7 @@ precision mediump float;
 uniform mat3 materialProperties;
 uniform mat3 lightProperties;
 uniform float shininess;
-uniform sampler2D sampler;
+uniform sampler2DArray sampler;
 
 varying vec3 fL;
 varying vec3 fN;
@@ -118,7 +130,7 @@ void main()
 
   // sample from the texture at interpolated texture coordinate
   //vec4 color = vec4(1.0, 0.0, 0.0, 1.0);
-   vec4 color = texture2D(sampler, fTexCoord);
+   vec4 color = texture(sampler, fTexCoord);
    //vec4 color = texture2D(sampler, vec2(fTexCoord.s * 4.0, fTexCoord.t * 4.0));
 
   // (1) use the value directly as the surface color and ignore the material properties
@@ -261,11 +273,12 @@ function drawCube(matrix) {
 
     // *** need to choose a texture unit, then bind the texture
     // to TEXTURE_2D for that unit
-    var textureUnit = 1;
-    gl.activeTexture(gl.TEXTURE0 + textureUnit);
-    gl.bindTexture(gl.TEXTURE_2D, textureHandle);
-    loc = gl.getUniformLocation(lightingShader, "sampler");
-    gl.uniform1i(loc, textureUnit);
+    colors.forEach(element => {
+        gl.activeTexture(gl.TEXTURE0 + textureUnit);
+        gl.bindTexture(gl.TEXTURE_2D, textureHandle);
+        loc = gl.getUniformLocation(lightingShader, "sampler");
+        gl.uniform1i(loc, textureUnit);
+    });
 
     gl.drawArrays(gl.TRIANGLES, 0, model.numVertices);
 
@@ -282,7 +295,9 @@ function draw() {
 
 async function main() {
 
-    var image = await loadImagePromise(imageFilename);
+    for(var i = 0; i < 10; i++) {
+        var image = await loadImagePromise(textures[i]);
+    }
 
     model = getModelData(new THREE.BoxGeometry());
 
