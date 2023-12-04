@@ -22,15 +22,15 @@ var sandImage       = "./textures/sand64.png";
 var logImage        = "./textures/log64.png";
 var leavesImage     = "./textures/leaves.png";
 
-var bedrock = []
-var stone = []
-var ore = []
-var gravel = []
-var dirt = []
-var grass = []
-var sand = []
-var log = []
-var leaves = []
+var bedrock = [];
+var stone = [];
+var ore = [];
+var gravel = [];
+var dirt = [];
+var grass = [];
+var sand = [];
+var log = [];
+var leaves = [];
 var textures = [];
 
 async function loadTextures() {
@@ -252,7 +252,7 @@ async function main() {
     await loadTextures();
 
     model = getModelData(new THREE.BoxGeometry());
-    gl.clearColor(0.9, 0.9, 0.9, 1.0);
+    gl.clearColor(0.25, 0.75, 1.0, 1.0);
 
     gl.enable(gl.DEPTH_TEST);
 
