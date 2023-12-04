@@ -6,26 +6,10 @@ var texCoordBuffer;
 var indexBuffer;
 var lightingShader;
 var colorShader;
-// handle to the texture object on the GPU
-var textureHandle;
+var textureHandles = [];
 var model;
 
 var world = new World();
-
-var imageFilename = "./textures/grass64top.png";
-
-const Blocks = {
-    BEDROCK : 0,
-    STONE : 1,
-    ORE : 2,
-    GRAVEL : 3,
-    DIRT : 4,
-    GRASS : 5,
-    GRASSTOP : 6,
-    SAND : 7,
-    LOG : 8,
-    LEAVES : 9
-}
 
 const textures = [
     "./textures/bedrock64.png",
@@ -40,153 +24,31 @@ const textures = [
     "./textures/leaves.png"
 ];
 
-// generic white light
-var lightPropElements = new Float32Array([
-    0.2, 0.2, 0.2,
-    0.7, 0.7, 0.7,
-    0.7, 0.7, 0.7
-]);
-
-//shiny green plastic
-var matPropElements = new Float32Array([
-    0.3, 0.3, 0.3,
-    0.0, 0.8, 0.0,
-    0.8, 0.8, 0.8
-]);
-var shininess = 30;
-
-// vertex shader for lighting
-const vLightingShaderSource = `
-uniform mat4 model;
-uniform mat4 view;
-uniform mat4 projection;
-uniform mat3 normalMatrix;
-uniform vec4 lightPosition;
-
-attribute vec4 a_Position;
-attribute vec3 a_Normal;
-attribute vec2 a_TexCoord;
-
-varying vec3 fL;
-varying vec3 fN;
-varying vec3 fV;
-varying vec2 fTexCoord;
-
-void main()
-{
-  // convert position to eye coords
-  vec4 positionEye = view * model * a_Position;
-
-  // convert light position to eye coords
-  vec4 lightEye = view * lightPosition;
-
-  // vector to light
-  fL = (lightEye - positionEye).xyz;
-
-  // transform normal vector into eye coords
-  fN = normalMatrix * a_Normal;
-
-  // vector from vertex position toward view point
-  fV = normalize(-(positionEye).xyz);
-
-  fTexCoord = a_TexCoord;
-  gl_Position = projection * view * model * a_Position;
-}
-`;
-
-// fragment shader for lighting
-const fLightingShaderSource = `
-precision mediump float;
-
-uniform mat3 materialProperties;
-uniform mat3 lightProperties;
-uniform float shininess;
-uniform sampler2DArray sampler;
-
-varying vec3 fL;
-varying vec3 fN;
-varying vec3 fV;
-varying vec2 fTexCoord;
-
-void main()
-{
-  // normalize after interpolating
-  vec3 N = normalize(fN);
-  vec3 L = normalize(fL);
-  vec3 V = normalize(fV);
-
-  // reflected vector
-  vec3 R = reflect(-L, N);
-
-  // get the columns out of the light and material properties.  We keep the surface
-  // properties separate, so we can mess with them using the sampled texture value
-  vec4 ambientSurface = vec4(materialProperties[0], 1.0);
-  vec4 diffuseSurface = vec4(materialProperties[1], 1.0);
-  vec4 specularSurface = vec4(materialProperties[2], 1.0);
-
-  vec4 ambientLight = vec4(lightProperties[0], 1.0);
-  vec4 diffuseLight = vec4(lightProperties[1], 1.0);
-  vec4 specularLight = vec4(lightProperties[2], 1.0);
-
-  // sample from the texture at interpolated texture coordinate
-  //vec4 color = vec4(1.0, 0.0, 0.0, 1.0);
-   vec4 color = texture(sampler, fTexCoord);
-   //vec4 color = texture2D(sampler, vec2(fTexCoord.s * 4.0, fTexCoord.t * 4.0));
-
-  // (1) use the value directly as the surface color and ignore the material properties
-  ambientSurface = color;
-  diffuseSurface = color;
-  //diffuseSurface = .5 * color + .5 * diffuseSurface;
-
-  // (2) modulate intensity of surface color (or of any component)
-  //float m = (color.r + color.g + color.b) / 3.0;
-  // ambientSurface *= m;
-  //diffuseSurface *= m;
-  //specularSurface *= m;
-
-  // (3) blend texture using its alpha value (try this with "steve.png")
-  //float m = color.a;
-  //ambientSurface = (1.0 - m) * ambientSurface + m * color;
-  //diffuseSurface = (1.0 - m) * diffuseSurface + m * color;
-  //specularSurface = (1.0 - m) * specularSurface + m * color;
-  
-
-  // lighting factors as usual
-
-  // Lambert's law, clamp negative values to zero
-  float diffuseFactor = max(0.0, dot(L, N));
-
-  // specular factor from Phong reflection model
-  float specularFactor = pow(max(0.0, dot(V, R)), shininess);
-
-  // add the components together, note that vec4 * vec4 is componentwise multiplication,
-  // not a dot product
-  vec4 ambient = ambientLight * ambientSurface;
-  vec4 diffuse = diffuseFactor * diffuseLight * diffuseSurface;
-  vec4 specular = specularFactor * specularLight * specularSurface;
-  gl_FragColor = ambient + diffuse + specular;
-  gl_FragColor.a = 1.0;
-}
-`;
-
-// vertex shader with color only
-const vColorShaderSource = `
+// vertex shader
+const vshaderSource = `
 uniform mat4 transform;
 attribute vec4 a_Position;
-attribute vec4 a_Color;
-varying vec4 color;
+attribute vec2 a_TexCoord;
+varying vec2 fTexCoord;
 void main()
 {
-  color = a_Color;
+  // pass through so the value gets interpolated
+  fTexCoord = a_TexCoord;
   gl_Position = transform * a_Position;
-}`;
+}
+`;
 
-// fragment shader with color only
-const fColorShaderSource = `
+// fragment shader
+const fshaderSource = `
 precision mediump float;
-varying vec4 color;
+uniform sampler2D sampler;
+varying vec2 fTexCoord;
 void main()
 {
+  // sample from the texture at the interpolated texture coordinate,
+  // and use the value directly as the surface color
+  vec4 color = texture2D(sampler, fTexCoord);
+  //vec4 color = vec4(1.0, 0.0, 0.0, 1.0);
   gl_FragColor = color;
 }
 `;
@@ -208,25 +70,17 @@ function handleKeyPress(event) {
     world.keyControl(ch);
 }
 
-function drawCube(matrix) {
-
+function drawCube(matrix, texIndex) {
     // bind the shader
-    gl.useProgram(lightingShader);
+    gl.useProgram(colorShader);
 
-    // get the index for the a_Position attribute defined in the vertex shader
-    var positionIndex = gl.getAttribLocation(lightingShader, 'a_Position');
+    var positionIndex = gl.getAttribLocation(colorShader, 'a_Position');
     if (positionIndex < 0) {
         console.log('Failed to get the storage location of a_Position');
         return;
     }
 
-    var normalIndex = gl.getAttribLocation(lightingShader, 'a_Normal');
-    if (normalIndex < 0) {
-        console.log('Failed to get the storage location of a_Normal');
-        return;
-    }
-
-    var texCoordIndex = gl.getAttribLocation(lightingShader, 'a_TexCoord');
+    var texCoordIndex = gl.getAttribLocation(colorShader, 'a_TexCoord');
     if (texCoordIndex < 0) {
         console.log('Failed to get the storage location of a_TexCoord');
         return;
@@ -234,57 +88,38 @@ function drawCube(matrix) {
 
     // "enable" the a_position attribute
     gl.enableVertexAttribArray(positionIndex);
-    gl.enableVertexAttribArray(normalIndex);
     gl.enableVertexAttribArray(texCoordIndex);
-
 
     // bind buffers for points
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
     gl.vertexAttribPointer(positionIndex, 3, gl.FLOAT, false, 0, 0);
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexNormalBuffer);
-    gl.vertexAttribPointer(normalIndex, 3, gl.FLOAT, false, 0, 0);
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
     gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
     gl.vertexAttribPointer(texCoordIndex, 2, gl.FLOAT, false, 0, 0);
 
-    // set uniform in shader for projection * view * model transformation
     var projection = world.camera.getProjection();
     var view = world.camera.getView();
-    var loc = gl.getUniformLocation(lightingShader, "model");
-    gl.uniformMatrix4fv(loc, false, matrix.elements);
-    loc = gl.getUniformLocation(lightingShader, "view");
-    gl.uniformMatrix4fv(loc, false, view.elements);
-    loc = gl.getUniformLocation(lightingShader, "projection");
-    gl.uniformMatrix4fv(loc, false, projection.elements);
-    loc = gl.getUniformLocation(lightingShader, "normalMatrix");
-    gl.uniformMatrix3fv(loc, false, makeNormalMatrixElements(matrix, view));
+    var modelMatrix = new THREE.Matrix4();
+    modelMatrix.elements = matrix.elements;
+    var transform = new THREE.Matrix4().multiply(projection).multiply(view).multiply(modelMatrix);
 
-    // set a light position at (2, 4, 2)
-    loc = gl.getUniformLocation(lightingShader, "lightPosition");
-    gl.uniform4f(loc, 2.0, 4.0, 2.0, 1.0);
+    var loc = gl.getUniformLocation(colorShader, "transform");
+    gl.uniformMatrix4fv(loc, false, transform.elements);
 
-    // *** light and material properties
-    loc = gl.getUniformLocation(lightingShader, "lightProperties");
-    gl.uniformMatrix3fv(loc, false, lightPropElements);
-    loc = gl.getUniformLocation(lightingShader, "materialProperties");
-    gl.uniformMatrix3fv(loc, false, matPropElements);
-    loc = gl.getUniformLocation(lightingShader, "shininess");
-    gl.uniform1f(loc, shininess);
+    loc = gl.getUniformLocation(colorShader, "sampler");
 
-    // *** need to choose a texture unit, then bind the texture
-    // to TEXTURE_2D for that unit
-    colors.forEach(element => {
-        gl.activeTexture(gl.TEXTURE0 + textureUnit);
-        gl.bindTexture(gl.TEXTURE_2D, textureHandle);
-        loc = gl.getUniformLocation(lightingShader, "sampler");
-        gl.uniform1i(loc, textureUnit);
-    });
+    var textureUnit = texIndex;
+    gl.activeTexture(gl.TEXTURE0 + textureUnit);
+    gl.bindTexture(gl.TEXTURE_2D, textureHandles[textureUnit]);
+
+    // sampler value in shader is set to index for texture unit
+    gl.uniform1i(loc, textureUnit);
 
     gl.drawArrays(gl.TRIANGLES, 0, model.numVertices);
 
     gl.disableVertexAttribArray(positionIndex);
-    gl.disableVertexAttribArray(normalIndex);
+    gl.disableVertexAttribArray(texCoordIndex);
     gl.useProgram(null);
+    gl.bindTexture(gl.TEXTURE_2D, null);
 }
 
 function draw() {
@@ -295,13 +130,36 @@ function draw() {
 
 async function main() {
 
-    for(var i = 0; i < 10; i++) {
-        var image = await loadImagePromise(textures[i]);
+    gl = getGraphicsContext("theCanvas");
+
+    for(let i = 0; i < textures.length; i++) {
+        let image = await loadImagePromise(textures[i]);
+        // ask the GPU to create a texture object
+        let textureHandle = gl.createTexture();
+    
+        // choose a texture unit to use during setup, defaults to zero
+        // (can use a different one when drawing)
+        // max value is MAX_COMBINED_TEXTURE_IMAGE_UNITS
+        gl.activeTexture(gl.TEXTURE0 + i);
+    
+        // bind the texture
+        gl.bindTexture(gl.TEXTURE_2D, textureHandle);
+    
+        // load the image bytes to the currently bound texture, flipping the vertical
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+    
+        // set default parameters to usable values
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    
+        // unbind
+        gl.bindTexture(gl.TEXTURE_2D, null);
+
+        textureHandles[i] = textureHandle;
     }
 
     model = getModelData(new THREE.BoxGeometry());
-
-    gl = getGraphicsContext("theCanvas");
     gl.clearColor(0.9, 0.9, 0.9, 1.0);
 
     gl.enable(gl.DEPTH_TEST);
@@ -310,29 +168,14 @@ async function main() {
     gl.cullFace(gl.BACK);
 
     // load and compile the shader pair
-    lightingShader = createShaderProgram(gl, vLightingShaderSource, fLightingShaderSource);
-    colorShader = createShaderProgram(gl, vColorShaderSource, fColorShaderSource);
+    colorShader = createShaderProgram(gl, vshaderSource, fshaderSource);
 
     // load the vertex data into GPU memory
     vertexBuffer = createAndLoadBuffer(model.vertices);
 
-    // buffer for vertex normals
-    vertexNormalBuffer = createAndLoadBuffer(model.normals);
-
-    // buffer for vertex colors
-    vertexColorBuffer = gl.createBuffer();
-
     texCoordBuffer = createAndLoadBuffer(model.texCoords);
 
     window.onkeypress = handleKeyPress;
-
-    // ask the GPU to create a texture object
-    textureHandle = createAndLoadTexture(image);
-
-    // generate mipmaps for the texture
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, textureHandle);
-    gl.generateMipmap(gl.TEXTURE_2D);
 
     var animate = function () {
         draw();

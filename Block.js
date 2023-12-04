@@ -1,6 +1,19 @@
 class Block extends CS336Object {
 
-    constructor(x, y, z, chunk) {
+    static Type = {
+        BEDROCK : 0,
+        STONE : 1,
+        ORE : 2,
+        GRAVEL : 3,
+        DIRT : 4,
+        GRASS : 5,
+        GRASSTOP : 6,
+        SAND : 7,
+        LOG : 8,
+        LEAVES : 9
+    }
+
+    constructor(x, y, z, chunk, blockType) {
         super(drawCube);
         this.setPosition(x, y, z);
         chunk.addChild(this);
@@ -9,6 +22,7 @@ class Block extends CS336Object {
         this.x = x;
         this.y = y;
         this.z = z;
+        this.blockType = blockType;
 
         this.visible = false;
         this.needsUpdate = true;
@@ -133,4 +147,8 @@ class Block extends CS336Object {
         return this.x == 0 || this.z == 0 || this.x == Chunk.CHUNK_SIZE_X - 1 || this.z == Chunk.CHUNK_SIZE_Z - 1;
     }
 
+    render(matrixWorld) {
+        var current = new THREE.Matrix4().copy(matrixWorld).multiply(this.getMatrix());
+        this.drawObject(current, this.blockType);
+    }
 }
