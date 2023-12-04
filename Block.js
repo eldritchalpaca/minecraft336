@@ -9,6 +9,14 @@ class Block extends CS336Object {
         this.x = x;
         this.y = y;
         this.z = z;
+
+        this.visible = false;
+        this.needsUpdate = true;
+    }
+
+    update() {
+        this.isSurrounded();
+        this.needsUpdate = false;
     }
 
     hasNorthNeighbor() {
@@ -108,9 +116,17 @@ class Block extends CS336Object {
         return neighbor != null;
     }
     isSurrounded() {
-        return  this.hasUpstairsNeighbor()  && this.hasDownstairsNeighbor() && 
-                this.hasNorthNeighbor()     && this.hasSouthNeighbor() && 
-                this.hasEastNeighbor()      && this.hasWestNeighbor();
+        if (!this.needsUpdate) {
+            return !this.visible
+        }
+
+        let surrounded =    this.hasUpstairsNeighbor()  && this.hasDownstairsNeighbor() && 
+                            this.hasNorthNeighbor()     && this.hasSouthNeighbor() && 
+                            this.hasEastNeighbor()      && this.hasWestNeighbor();
+
+        this.visible = !surrounded;
+
+        return surrounded;
     }
 
     isOnChunkBorder() {
