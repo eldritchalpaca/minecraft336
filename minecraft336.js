@@ -167,7 +167,7 @@ async function main() {
     gl.enable(gl.CULL_FACE);
     gl.cullFace(gl.BACK);
 
-    // load and compile the shader pair
+    // load and compile the shader pairl
     colorShader = createShaderProgram(gl, vshaderSource, fshaderSource);
 
     // load the vertex data into GPU memory
