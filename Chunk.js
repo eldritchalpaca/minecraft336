@@ -93,7 +93,12 @@ class Chunk extends CS336Object {
     // as their "world"
     for (var i = 0; i < this.children.length; ++i) {
         let child = this.children[i];
-        let dontDraw = (child instanceof Block) && child.isSurrounded();
+
+        if (child.needsUpdate) {
+            child.update();
+        }
+        
+        let dontDraw = child.isSurrounded();
 
         if (!dontDraw) {
             child.render(current);
