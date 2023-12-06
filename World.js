@@ -2,7 +2,7 @@ class World extends CS336Object {
 
     static WORLD_SIZE = 100;
     static PLAYER_HEIGHT = 1.97;
-    static RENDER_DISTANCE = 6;
+    static RENDER_DISTANCE = 8;
 
     constructor() {
         super();

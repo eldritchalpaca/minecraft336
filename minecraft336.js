@@ -21,6 +21,7 @@ var grassTopImage   = "./textures/grass64Top.png";
 var sandImage       = "./textures/sand64.png";
 var logImage        = "./textures/log64.png";
 var leavesImage     = "./textures/leaves.png";
+var waterImage      = "./textures/check64border.png";
 
 var bedrock = [];
 var stone = [];
@@ -31,6 +32,7 @@ var grass = [];
 var sand = [];
 var log = [];
 var leaves = [];
+var water = [];
 var textures = [];
 
 async function loadTextures() {
@@ -44,6 +46,7 @@ async function loadTextures() {
     sandImage       = await loadImagePromise(sandImage);
     logImage        = await loadImagePromise(logImage);
     leavesImage     = await loadImagePromise(leavesImage);
+    waterImage      = await loadImagePromise(waterImage);
 
     bedrock = [
         bedrockImage,
@@ -119,6 +122,15 @@ async function loadTextures() {
         leavesImage,
         leavesImage
     ]
+
+    water = [
+        waterImage,
+        waterImage,
+        waterImage,
+        waterImage,
+        waterImage,
+        waterImage
+    ]
     
     textures = [
         bedrock,
@@ -129,7 +141,8 @@ async function loadTextures() {
         grass,
         sand,
         log,
-        leaves
+        leaves,
+        water
     ];
 
     for (let i = 0; i < textures.length; ++i) {

@@ -7,10 +7,10 @@ class Block extends CS336Object {
         GRAVEL : 3,
         DIRT : 4,
         GRASS : 5,
-        GRASSTOP : 6,
-        SAND : 7,
-        LOG : 8,
-        LEAVES : 9
+        SAND : 6,
+        LOG : 7,
+        LEAVES : 8,
+        WATER : 9
     }
 
     constructor(x, y, z, chunk, blockType) {

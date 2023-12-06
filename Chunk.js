@@ -2,7 +2,8 @@ class Chunk extends CS336Object {
 
     static CHUNK_SIZE_X = 16;
     static CHUNK_SIZE_Z = 16;
-    static WORLD_HEIGHT = 32;
+    static WORLD_HEIGHT = 64;
+    static SEA_LEVEL = 32;
 
     constructor(x, z, world) {
         super();
@@ -62,7 +63,29 @@ class Chunk extends CS336Object {
         for (let x = 0; x < Chunk.CHUNK_SIZE_X; ++x) {
             for (let z = 0; z < Chunk.CHUNK_SIZE_Z; ++z) {
                 for (let y = 0; y < this.height[x][z]; ++y) {
-                    this.blocks[x][y][z] = new Block(x, y, z, this, Block.Type.GRASS);
+                    this.blocks[x][y][z] = new Block(x, y, z, this, Block.Type.STONE);
+                }
+            }
+        }
+
+        for (let x = 0; x < Chunk.CHUNK_SIZE_X; ++x) {
+            for (let z = 0; z < Chunk.CHUNK_SIZE_Z; ++z) {
+                for (let y = 0; y < Chunk.SEA_LEVEL; ++y) {
+                    if (this.blocks[x][y][z] == null) {
+                        this.blocks[x][y][z] = new Block(x, y, z, this, Block.Type.WATER);
+                    }
+                }
+            }
+        }
+
+        for (let x = 0; x < Chunk.CHUNK_SIZE_X; ++x) {
+            for (let z = 0; z < Chunk.CHUNK_SIZE_Z; ++z) {
+                for (let y = 0; y < this.height[x][z]; ++y) {
+                    if (this.blocks[x][y][z].blockType != Block.Type.WATER && !this.blocks[x][y][z].hasUpstairsNeighbor()) {
+                        this.blocks[x][y][z].blockType = Block.Type.GRASS;
+                        this.blocks[x][y - 1][z].blockType = Block.Type.DIRT;
+                        this.blocks[x][y - 2][z].blockType = Block.Type.DIRT;
+                    }
                 }
             }
         }
