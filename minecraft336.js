@@ -19,9 +19,9 @@ var dirtImage       = "./textures/dirt64.png";
 var grassImage      = "./textures/grass64.png";
 var grassTopImage   = "./textures/grass64Top.png";
 var sandImage       = "./textures/sand64.png";
-var logImage        = "./textures/log64.png";
-var leavesImage     = "./textures/leaves.png";
-var waterImage      = "./textures/check64border.png";
+var logImage        = "./textures/log.png";
+var leavesImage     = "./textures/leave2.png";
+var waterImage      = "./textures/water.png";
 
 var bedrock = [];
 var stone = [];

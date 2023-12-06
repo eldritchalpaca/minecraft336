@@ -18,6 +18,7 @@ class Block extends CS336Object {
         this.setPosition(x, y, z);
         chunk.addChild(this);
 
+        chunk.blocks[x][y][z] = this;
         this.chunk = chunk;
         this.x = x;
         this.y = y;

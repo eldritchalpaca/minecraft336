@@ -8,3 +8,10 @@ function createNDimArray(dimensions) {
 function changeScale(val, oldLow, oldHigh, newLow, newHigh) {
     return (val - oldLow) * (newHigh - newLow) / (oldHigh - oldLow) + newLow;
 }
+
+/**
+ * bounds inclusive
+ */
+function getRandomInteger(min, max) {
+    return Math.floor(Math.random() * (max - min + 1) ) + min;
+  }
