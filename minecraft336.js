@@ -196,8 +196,86 @@ function getChar(event) {
 }
 
 function handleKeyPress(event) {
+    // if (event.key == "SHIFT") {
+    //     oldX = canvas.innerWidth / 2;
+    //     oldY = canvas.innerHeight / 2;
+    // }
+
     var ch = getChar(event);
     world.keyControl(ch);
+}
+
+function handleMouseClick(event) {
+    console.log(event);
+}
+
+function isMouseInTopHalf(event) {
+    let mouseY = event.offsetY;
+    let target = event.target;
+    let middle = target.height / 2;
+
+    return mouseY > middle;
+}
+
+function isMouseInBottomHalf(event) {
+    let mouseY = event.offsetY;
+    let target = event.target;
+    let middle = target.height / 2;
+
+    return mouseY < middle;
+}
+
+function isMouseInLeftHalf(event) {
+    let mouseX = event.offsetX;
+    let target = event.target;
+    let middle = target.width / 2;
+
+    return mouseX < middle;
+}
+
+function isMouseInRightHalf(event) {
+    let mouseX = event.offsetX;
+    let target = event.target;
+    let middle = target.width / 2;
+
+    return mouseX > middle;
+}
+
+
+
+let oldX = 0;
+let oldY = 0;
+function handleMouseMove(event) {
+    if (event.shiftKey) {
+        
+        let dirX = 0;
+        let dirY = 0;
+        let diffX = 0;
+        let diffY = 0
+    
+        if (event.offsetX < oldX && isMouseInLeftHalf(event)) {
+            dirX = "left";
+            diffX = oldX - event.offsetX;
+            world.camera.turnLeft(diffX * 0.5);
+        } else if (event.offsetX > oldX && isMouseInRightHalf(event)) {
+            dirX = "right";
+            diffX = event.offsetX - oldX;
+            world.camera.turnRight(diffX * 0.5);
+        }
+    
+        if (event.offsetY > oldY && isMouseInTopHalf(event)) {
+            dirY = "up";
+            diffY = oldY - event.offsetY;
+            world.camera.lookUp(diffY * 0.2);
+        } else if (event.offsetY < oldY && isMouseInBottomHalf(event)) {
+            dirY = "down";
+            diffY = event.offsetY - oldY;
+            world.camera.lookDown(diffY * 0.2);
+        }
+    
+        oldX = event.offsetX;
+        oldY = event.offsetY;
+    }
 }
 
 function drawCube(matrix, texIndex) {
@@ -258,8 +336,9 @@ function draw() {
     world.render(new THREE.Matrix4());
 }
 
+let canvas;
 async function main() {
-
+    canvas = document.getElementById("theCanvas");
     gl = getGraphicsContext("theCanvas");
 
     await loadTextures();
@@ -281,6 +360,9 @@ async function main() {
     texCoordBuffer = createAndLoadBuffer(model.texCoords);
 
     window.onkeypress = handleKeyPress;
+    canvas.onmousedown = handleMouseClick;
+    //window.onmousemove = handleMouseMove;
+    canvas.addEventListener("mousemove", handleMouseMove);
 
     var animate = function () {
         draw();
