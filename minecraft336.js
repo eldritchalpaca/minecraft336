@@ -11,17 +11,17 @@ var model;
 
 var world = new World();
 
-var bedrockImage    = "./textures/bedrock64.png";
-var stoneImage      = "./textures/stone64.png";
-var oreImage        = "./textures/ore64.png";
-var gravelImage     = "./textures/gravel64.png";
-var dirtImage       = "./textures/dirt64.png";
-var grassImage      = "./textures/grass64.png";
-var grassTopImage   = "./textures/grass64Top.png";
-var sandImage       = "./textures/sand64.png";
-var logImage        = "./textures/log.png";
-var leavesImage     = "./textures/leaves.png";
-var waterImage      = "./textures/water.png";
+var bedrockImage = "./textures/bedrock64.png";
+var stoneImage = "./textures/stone64.png";
+var oreImage = "./textures/ore64.png";
+var gravelImage = "./textures/gravel64.png";
+var dirtImage = "./textures/dirt64.png";
+var grassImage = "./textures/grass64.png";
+var grassTopImage = "./textures/grass64Top.png";
+var sandImage = "./textures/sand64.png";
+var logImage = "./textures/log.png";
+var leavesImage = "./textures/leaves.png";
+var waterImage = "./textures/water.png";
 
 var bedrock = [];
 var stone = [];
@@ -36,17 +36,17 @@ var water = [];
 var textures = [];
 
 async function loadTextures() {
-    bedrockImage    = await loadImagePromise(bedrockImage);
-    stoneImage      = await loadImagePromise(stoneImage);
-    oreImage        = await loadImagePromise(oreImage);
-    gravelImage     = await loadImagePromise(gravelImage);
-    dirtImage       = await loadImagePromise(dirtImage);
-    grassImage      = await loadImagePromise(grassImage);
-    grassTopImage   = await loadImagePromise(grassTopImage);
-    sandImage       = await loadImagePromise(sandImage);
-    logImage        = await loadImagePromise(logImage);
-    leavesImage     = await loadImagePromise(leavesImage);
-    waterImage      = await loadImagePromise(waterImage);
+    bedrockImage = await loadImagePromise(bedrockImage);
+    stoneImage = await loadImagePromise(stoneImage);
+    oreImage = await loadImagePromise(oreImage);
+    gravelImage = await loadImagePromise(gravelImage);
+    dirtImage = await loadImagePromise(dirtImage);
+    grassImage = await loadImagePromise(grassImage);
+    grassTopImage = await loadImagePromise(grassTopImage);
+    sandImage = await loadImagePromise(sandImage);
+    logImage = await loadImagePromise(logImage);
+    leavesImage = await loadImagePromise(leavesImage);
+    waterImage = await loadImagePromise(waterImage);
 
     bedrock = [
         bedrockImage,
@@ -89,14 +89,14 @@ async function loadTextures() {
         dirtImage
     ]
     grass = [
-        
+
         grassImage,
         grassImage,
         grassTopImage,
         dirtImage,
         grassImage,
         grassImage,
-        
+
     ]
     sand = [
         sandImage,
@@ -131,7 +131,7 @@ async function loadTextures() {
         waterImage,
         waterImage
     ]
-    
+
     textures = [
         bedrock,
         stone,
@@ -148,7 +148,7 @@ async function loadTextures() {
     for (let i = 0; i < textures.length; ++i) {
         textureHandles[i] = createAndLoadCubeTexture(textures[i], i);
     }
-    
+
 }
 
 // vertex shader
@@ -195,11 +195,22 @@ function getChar(event) {
     }
 }
 
-function handleKeyPress(event) {
+async function handleKeyPress(event) {
     // if (event.key == "SHIFT") {
     //     oldX = canvas.innerWidth / 2;
     //     oldY = canvas.innerHeight / 2;
     // }
+
+    if (event.key = "[") {
+        if (!document.pointerLockElement) {
+            await canvas.requestPointerLock();
+            console.log("pointer lock on")
+        }
+        else {
+            document.exitPointerLock();
+            console.log("pointer lock off")
+        }
+    }
 
     var ch = getChar(event);
     world.keyControl(ch);
@@ -241,41 +252,28 @@ function isMouseInRightHalf(event) {
     return mouseX > middle;
 }
 
-
-
-let oldX = 0;
-let oldY = 0;
+/**
+ * adapted from https://web.dev/articles/pointerlock-intro
+ */
 function handleMouseMove(event) {
-    if (event.shiftKey) {
-        
-        let dirX = 0;
-        let dirY = 0;
-        let diffX = 0;
-        let diffY = 0
-    
-        if (event.offsetX < oldX && isMouseInLeftHalf(event)) {
-            dirX = "left";
-            diffX = oldX - event.offsetX;
-            world.camera.turnLeft(diffX * 0.5);
-        } else if (event.offsetX > oldX && isMouseInRightHalf(event)) {
-            dirX = "right";
-            diffX = event.offsetX - oldX;
-            world.camera.turnRight(diffX * 0.5);
-        }
-    
-        if (event.offsetY > oldY && isMouseInTopHalf(event)) {
-            dirY = "up";
-            diffY = oldY - event.offsetY;
-            world.camera.lookUp(diffY * 0.2);
-        } else if (event.offsetY < oldY && isMouseInBottomHalf(event)) {
-            dirY = "down";
-            diffY = event.offsetY - oldY;
-            world.camera.lookDown(diffY * 0.2);
-        }
-    
-        oldX = event.offsetX;
-        oldY = event.offsetY;
-    }
+
+    let movementX = event.movementX;
+    let movementY = event.movementY;
+
+    //yaw rotation
+    world.camera.rotateOnAxis(movementX * -0.1, 0, 1, 0);
+
+
+    let cameraMatrix = world.camera.getView();
+    let strafeDirection = new THREE.Vector3();
+
+    //third column of view matrix
+    let cameraLookVector = (new THREE.Vector3(cameraMatrix.elements[2], cameraMatrix.elements[6], cameraMatrix.elements[10])).normalize();
+
+    strafeDirection = (cameraLookVector.cross(new THREE.Vector3(0, 1, 0))).normalize();
+
+    //pitch rotation
+    world.camera.rotateOnAxis(movementY * 0.1, strafeDirection.x, strafeDirection.y, strafeDirection.z);
 }
 
 function drawCube(matrix, texIndex) {
