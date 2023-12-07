@@ -122,7 +122,6 @@ async function loadTextures() {
         leavesImage,
         leavesImage
     ]
-
     water = [
         waterImage,
         waterImage,
@@ -131,7 +130,6 @@ async function loadTextures() {
         waterImage,
         waterImage
     ]
-
     textures = [
         bedrock,
         stone,
@@ -158,6 +156,7 @@ attribute vec4 a_Position;
 attribute vec2 a_TexCoord;
 varying vec2 fTexCoord;
 varying vec3 fTexVector;
+
 void main()
 {
   // pass through so the value gets interpolated
@@ -173,11 +172,12 @@ precision mediump float;
 uniform samplerCube sampler;
 varying vec2 fTexCoord;
 varying vec3 fTexVector;
+uniform float m;
 void main()
 {
   // sample from the texture at the interpolated texture coordinate,
   // and use the value directly as the surface color
-  vec4 color = textureCube(sampler, fTexVector);
+  vec4 color = textureCube(sampler, fTexVector) + m;
   //vec4 color = vec4(1.0, 0.0, 0.0, 1.0);
   gl_FragColor = color;
 }
@@ -232,7 +232,10 @@ function handleMouseMove(event) {
     let strafeDirection = new THREE.Vector3();
 
     //third column of view matrix
-    let cameraLookVector = (new THREE.Vector3(cameraMatrix.elements[2], cameraMatrix.elements[6], cameraMatrix.elements[10])).normalize();
+    var cameraLookVector = (new THREE.Vector3(cameraMatrix.elements[2], cameraMatrix.elements[6], cameraMatrix.elements[10])).normalize();
+    // if (cameraLookVector == cameraLookBlock) {
+        m == 0.3;
+    // }
 
     strafeDirection = (cameraLookVector.cross(new THREE.Vector3(0, 1, 0))).normalize();
 
@@ -255,6 +258,8 @@ function drawCube(matrix, texIndex) {
         console.log('Failed to get the storage location of a_TexCoord');
         return;
     }
+
+    m = 0.0;
 
     // "enable" the a_position attribute
     gl.enableVertexAttribArray(positionIndex);
