@@ -16,10 +16,7 @@ class Block extends CS336Object {
     constructor(x, y, z, chunk, blockType) {
         super(drawCube);
         this.setPosition(x, y, z);
-        chunk.addChild(this);
-
-        chunk.blocks[x][y][z] = this;
-        this.chunk = chunk;
+        
         this.x = x;
         this.y = y;
         this.z = z;
@@ -27,6 +24,16 @@ class Block extends CS336Object {
 
         this.visible = false;
         this.needsUpdate = true;
+
+        if (chunk != null) {
+            this.setChunk(chunk);
+        }
+    }
+
+    setChunk(chunk) {
+        chunk.addChild(this);
+        chunk.blocks[this.x][this.y][this.z] = this;
+        this.chunk = chunk;
     }
 
     update() {

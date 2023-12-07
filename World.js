@@ -7,6 +7,8 @@ class World extends CS336Object {
     constructor() {
         super();
 
+        this.chunkRenderBuffer = new Map();
+
         this.setPosition(0, 0, 0);
 
         this.chunks = createNDimArray([World.WORLD_SIZE, World.WORLD_SIZE]);
@@ -26,6 +28,35 @@ class World extends CS336Object {
 
         this.setRenderedChunks();
 
+    }
+
+    addBlockToBuffer(chunkX, chunkZ, block) {
+        let key = chunkX + " " + chunkZ;
+
+        if (!this.chunkRenderBuffer.has(key)) {
+            this.chunkRenderBuffer.set(key, [block]);
+        }
+        else {
+            let blocks = this.chunkRenderBuffer.get(key);
+            this.chunkRenderBuffer.delete(key);
+            blocks.push(block);
+            this.chunkRenderBuffer.set(key, blocks);
+        }
+    }
+
+    getChunkFromBuffer(chunkX, chunkZ) {
+        let key = chunkX + " " + chunkZ;
+
+        if (this.chunkRenderBuffer.has(key)) {
+            return this.chunkRenderBuffer.get(key);
+        }
+
+        return [];
+    }
+
+    removeChunkFromBuffer(chunkX, chunkZ){
+        let key = chunkX + " " + chunkZ;
+        this.chunkRenderBuffer.delete(key);
     }
 
     setRenderedChunks() {
