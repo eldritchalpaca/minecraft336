@@ -43,7 +43,7 @@ class Chunk extends CS336Object {
 
                 let changeFactor = .05;
                 let scale = 15;
-                let y = perlin.get (x * changeFactor, z * changeFactor);
+                let y = perlin.get(x * changeFactor, z * changeFactor);
                 y = y * scale;
 
                 y = changeScale(y, -1 * scale, 1 * scale, 0, Chunk.WORLD_HEIGHT);
@@ -96,9 +96,9 @@ class Chunk extends CS336Object {
 
                 //make top layer grass with 2 blocks dirt under it
                 if (block.blockType != Block.Type.WATER && !block.hasUpstairsNeighbor()) {
-                    this.blocks[x][y][z].blockType      = Block.Type.GRASS;
-                    this.blocks[x][y - 1][z].blockType  = Block.Type.DIRT;
-                    this.blocks[x][y - 2][z].blockType  = Block.Type.DIRT;
+                    this.blocks[x][y][z].blockType = Block.Type.GRASS;
+                    this.blocks[x][y - 1][z].blockType = Block.Type.DIRT;
+                    this.blocks[x][y - 2][z].blockType = Block.Type.DIRT;
 
 
                     //add trees
@@ -143,6 +143,85 @@ class Chunk extends CS336Object {
         return true;
     }
 
+    buildTreeHelper(i, j) {
+        let chunk = null;
+        let bufferKey = null;
+        let xIndex;
+        let zIndex;
+        let xMax = Chunk.CHUNK_SIZE_X;
+        let zMax = Chunk.CHUNK_SIZE_Z;
+
+        if (i >= 0 && i < xMax && j >= 0 && j < zMax) {
+            //this chunk
+            chunk = this;
+            xIndex = i;
+            zIndex = j;
+        }
+        else if (i < 0 && j < 0) {
+            //southwest
+            chunk = this.world.chunks[this.x - 1][this.z - 1];
+            bufferKey = [this.x - 1, this.z - 1];
+            xIndex = i + xMax;
+            zIndex = j + zMax;
+        }
+        else if (i < 0 && j >= zMax) {
+            //northwest
+            chunk = this.world.chunks[this.x - 1][this.z + 1];
+            bufferKey = [this.x - 1, this.z + 1];
+            xIndex = i + xMax;
+            zIndex = j - zMax;
+        }
+        else if (i >= xMax && j < 0) {
+            //southeast
+            chunk = this.world.chunks[this.x + 1][this.z - 1];
+            bufferKey = [this.x + 1, this.z - 1];
+            xIndex = i - xMax;
+            zIndex = j + zMax;
+        }
+        else if (i >= xMax && j >= zMax) {
+            //northeast
+            chunk = this.world.chunks[this.x + 1][this.z + 1];
+            bufferKey = [this.x + 1, this.z + 1];
+            xIndex = i - xMax;
+            zIndex = j - zMax;
+        }
+        else if (i < 0) {
+            //west
+            chunk = this.world.chunks[this.x - 1][this.z];
+            bufferKey = [this.x - 1, this.z];
+            xIndex = i + xMax;
+            zIndex = j;
+        }
+        else if (j < 0) {
+            //south
+            chunk = this.world.chunks[this.x][this.z - 1];
+            bufferKey = [this.x, this.z - 1];
+            xIndex = i;
+            zIndex = j + zMax;
+        }
+        else if (i >= xMax) {
+            //east
+            chunk = this.world.chunks[this.x + 1][this.z];
+            bufferKey = [this.x + 1, this.z];
+            xIndex = i - xMax;
+            zIndex = j;
+        }
+        else if (j >= zMax) {
+            //north
+            chunk = this.world.chunks[this.x][this.z + 1];
+            bufferKey = [this.x, this.z + 1];
+            xIndex = i;
+            zIndex = j - zMax;
+        }
+
+        return {
+            "chunk" : chunk,
+            "bufferKey" : bufferKey,
+            "xIndex" : xIndex,
+            "zIndex" : zIndex
+        }
+    }
+
     /**
      * Places tree with base at x, y, z
      */
@@ -161,75 +240,12 @@ class Chunk extends CS336Object {
         for (let i = x - 2; i <= x + 2; i++) {
             for (let j = z - 2; j <= z + 2; j++) {
 
-                let chunk = null;
-                let bufferKey = null;
-                let xIndex;
-                let zIndex;
-                let xMax = Chunk.CHUNK_SIZE_X;
-                let zMax = Chunk.CHUNK_SIZE_Z;
+                let helper = this.buildTreeHelper(i, j);
 
-                if (i >= 0 && i < xMax && j >= 0 && j < zMax) {
-                    //this chunk
-                    chunk = this;
-                    xIndex = i;
-                    zIndex = j;
-                }
-                else if (i < 0 && j < 0) {
-                    //southwest
-                    chunk = this.world.chunks[this.x - 1][this.z - 1];
-                    bufferKey = [this.x - 1, this.z - 1];
-                    xIndex = i + xMax;
-                    zIndex = j + zMax;
-                }
-                else if (i < 0 && j >= zMax) {
-                    //northwest
-                    chunk = this.world.chunks[this.x - 1][this.z + 1];
-                    bufferKey = [this.x - 1, this.z + 1];
-                    xIndex = i + xMax;
-                    zIndex = j - zMax;
-                }
-                else if (i >= xMax && j < 0) {
-                    //southeast
-                    chunk = this.world.chunks[this.x + 1][this.z - 1];
-                    bufferKey = [this.x + 1, this.z - 1];
-                    xIndex = i - xMax;
-                    zIndex = j + zMax;
-                }
-                else if (i >= xMax && j >= zMax) {
-                    //northeast
-                    chunk = this.world.chunks[this.x + 1][this.z + 1];
-                    bufferKey = [this.x + 1, this.z + 1];
-                    xIndex = i - xMax;
-                    zIndex = j - zMax;
-                }
-                else if (i < 0) {
-                    //west
-                    chunk = this.world.chunks[this.x - 1][this.z];
-                    bufferKey = [this.x - 1, this.z];
-                    xIndex = i + xMax;
-                    zIndex = j;
-                }
-                else if (j < 0) {
-                    //south
-                    chunk = this.world.chunks[this.x][this.z - 1];
-                    bufferKey = [this.x, this.z - 1];
-                    xIndex = i;
-                    zIndex = j + zMax;
-                }
-                else if (i >= xMax) {
-                    //east
-                    chunk = this.world.chunks[this.x + 1][this.z];
-                    bufferKey = [this.x + 1, this.z];
-                    xIndex = i - xMax;
-                    zIndex = j;
-                }
-                else if (j >= zMax) {
-                    //north
-                    chunk = this.world.chunks[this.x][this.z + 1];
-                    bufferKey = [this.x, this.z + 1];
-                    xIndex = i;
-                    zIndex = j - zMax;
-                }
+                let chunk = helper.chunk;
+                let bufferKey = helper.bufferKey;
+                let xIndex = helper.xIndex;
+                let zIndex = helper.zIndex;
 
                 let block1 = new Block(xIndex, y + 3, zIndex, null, Block.Type.LEAVES);
                 let block2 = new Block(xIndex, y + 4, zIndex, null, Block.Type.LEAVES);
@@ -250,13 +266,30 @@ class Chunk extends CS336Object {
             }
         }
 
-        for (let i = Math.max(x - 1, 0); i <= x + 1 && i < Chunk.CHUNK_SIZE_X; i++) {
-            for (let j = Math.max(z - 1, 0); j <= z + 1 && j < Chunk.CHUNK_SIZE_Z; j++) {
-                if (this.blocks[i][y + 5][j] == null) {
-                    new Block(i, y + 5, j, this, Block.Type.LEAVES);
+        for (let i = x - 1; i <= x + 1; i++) {
+            for (let j = z - 1; j <= z + 1; j++) {
+                let helper = this.buildTreeHelper(i, j);
+
+                let chunk = helper.chunk;
+                let bufferKey = helper.bufferKey;
+                let xIndex = helper.xIndex;
+                let zIndex = helper.zIndex;
+
+                let block1 = new Block(xIndex, y + 5, zIndex, null, Block.Type.LEAVES);
+                let block2 = new Block(xIndex, y + 6, zIndex, null, Block.Type.LEAVES);
+
+                if (chunk != null) {
+
+                    if (chunk.blocks[xIndex][y + 5][zIndex] == null) {
+                        block1.setChunk(chunk);
+                    }
+                    if (chunk.blocks[xIndex][y + 6][zIndex] == null) {
+                        block2.setChunk(chunk);
+                    }
                 }
-                if (this.blocks[i][y + 6][j] == null) {
-                    new Block(i, y + 6, j, this, Block.Type.LEAVES);
+                else {
+                    this.world.addBlockToBuffer(bufferKey[0], bufferKey[1], block1);
+                    this.world.addBlockToBuffer(bufferKey[0], bufferKey[1], block2);
                 }
             }
         }
@@ -270,33 +303,33 @@ class Chunk extends CS336Object {
 
 
 
-          /**
-   * Renders this object using the drawObject callback function and recursing
-   * through the children.
-   * @param matrixWorld
-   *   frame transformation for this object's parent
-   */
-  render(matrixWorld) {
-    // clone and update the world matrix
-    var current = new THREE.Matrix4().copy(matrixWorld).multiply(this.getMatrix());
+    /**
+* Renders this object using the drawObject callback function and recursing
+* through the children.
+* @param matrixWorld
+*   frame transformation for this object's parent
+*/
+    render(matrixWorld) {
+        // clone and update the world matrix
+        var current = new THREE.Matrix4().copy(matrixWorld).multiply(this.getMatrix());
 
-    // invoke callback (possibly empty)
-    this.drawObject(current);
+        // invoke callback (possibly empty)
+        this.drawObject(current);
 
-    // recurse through children, who will use the current matrix
-    // as their "world"
-    for (var i = 0; i < this.children.length; ++i) {
-        let child = this.children[i];
+        // recurse through children, who will use the current matrix
+        // as their "world"
+        for (var i = 0; i < this.children.length; ++i) {
+            let child = this.children[i];
 
-        if (child.needsUpdate) {
-            child.update();
-        }
+            if (child.needsUpdate) {
+                child.update();
+            }
 
-        let dontDraw = child.isSurrounded();
+            let dontDraw = child.isSurrounded();
 
-        if (!dontDraw) {
-            child.render(current);
+            if (!dontDraw) {
+                child.render(current);
+            }
         }
     }
-  }
 }
