@@ -60,6 +60,16 @@ class Chunk extends CS336Object {
     }
 
     createBlocks() {
+        let bufferBlocks = this.world.getChunkFromBuffer(this.x, this.z);
+
+        this.world.removeChunkFromBuffer(this.x, this.z);
+
+        for (let i = 0; i < bufferBlocks.length; ++i) {
+            let block = bufferBlocks[i];
+            block.setChunk(this);
+        }
+
+        //use heightmap, set everything to stone
         for (let x = 0; x < Chunk.CHUNK_SIZE_X; ++x) {
             for (let z = 0; z < Chunk.CHUNK_SIZE_Z; ++z) {
                 for (let y = 0; y < this.height[x][z]; ++y) {
@@ -68,6 +78,7 @@ class Chunk extends CS336Object {
             }
         }
 
+        //fill up to sea level with water
         for (let x = 0; x < Chunk.CHUNK_SIZE_X; ++x) {
             for (let z = 0; z < Chunk.CHUNK_SIZE_Z; ++z) {
                 for (let y = 0; y < Chunk.SEA_LEVEL; ++y) {
@@ -83,11 +94,14 @@ class Chunk extends CS336Object {
                 let y = this.height[x][z] - 1;
                 let block = this.blocks[x][y][z];
 
+                //make top layer grass with 2 blocks dirt under it
                 if (block.blockType != Block.Type.WATER && !block.hasUpstairsNeighbor()) {
                     this.blocks[x][y][z].blockType      = Block.Type.GRASS;
                     this.blocks[x][y - 1][z].blockType  = Block.Type.DIRT;
                     this.blocks[x][y - 2][z].blockType  = Block.Type.DIRT;
 
+
+                    //add trees
                     if (block.blockType != Block.Type.WATER && getRandomInteger(1, 30) == 10) {
                         this.buildTree(x, y + 1, z);
                     }
@@ -144,13 +158,94 @@ class Chunk extends CS336Object {
             new Block(x, i, z, this, Block.Type.LOG);
         }
 
-        for (let i = Math.max(x - 2, 0); i <= x + 2 && i < Chunk.CHUNK_SIZE_X; i++) {
-            for (let j = Math.max(z - 2, 0); j <= z + 2 && j < Chunk.CHUNK_SIZE_Z; j++) {
-                if (this.blocks[i][y + 3][j] == null) {
-                    new Block(i, y + 3, j, this, Block.Type.LEAVES);
+        for (let i = x - 2; i <= x + 2; i++) {
+            for (let j = z - 2; j <= z + 2; j++) {
+
+                let chunk = null;
+                let bufferKey = null;
+                let xIndex;
+                let zIndex;
+                let xMax = Chunk.CHUNK_SIZE_X;
+                let zMax = Chunk.CHUNK_SIZE_Z;
+
+                if (i >= 0 && i < xMax && j >= 0 && j < zMax) {
+                    //this chunk
+                    chunk = this;
+                    xIndex = i;
+                    zIndex = j;
                 }
-                if (this.blocks[i][y + 4][j] == null) {
-                    new Block(i, y + 4, j, this, Block.Type.LEAVES);
+                else if (i < 0 && j < 0) {
+                    //southwest
+                    chunk = this.world.chunks[this.x - 1][this.z - 1];
+                    bufferKey = [this.x - 1, this.z - 1];
+                    xIndex = i + xMax;
+                    zIndex = j + zMax;
+                }
+                else if (i < 0 && j >= zMax) {
+                    //northwest
+                    chunk = this.world.chunks[this.x - 1][this.z + 1];
+                    bufferKey = [this.x - 1, this.z + 1];
+                    xIndex = i + xMax;
+                    zIndex = j - zMax;
+                }
+                else if (i >= xMax && j < 0) {
+                    //southeast
+                    chunk = this.world.chunks[this.x + 1][this.z - 1];
+                    bufferKey = [this.x + 1, this.z - 1];
+                    xIndex = i - xMax;
+                    zIndex = j + zMax;
+                }
+                else if (i >= xMax && j >= zMax) {
+                    //northeast
+                    chunk = this.world.chunks[this.x + 1][this.z + 1];
+                    bufferKey = [this.x + 1, this.z + 1];
+                    xIndex = i - xMax;
+                    zIndex = j - zMax;
+                }
+                else if (i < 0) {
+                    //west
+                    chunk = this.world.chunks[this.x - 1][this.z];
+                    bufferKey = [this.x - 1, this.z];
+                    xIndex = i + xMax;
+                    zIndex = j;
+                }
+                else if (j < 0) {
+                    //south
+                    chunk = this.world.chunks[this.x][this.z - 1];
+                    bufferKey = [this.x, this.z - 1];
+                    xIndex = i;
+                    zIndex = j + zMax;
+                }
+                else if (i >= xMax) {
+                    //east
+                    chunk = this.world.chunks[this.x + 1][this.z];
+                    bufferKey = [this.x + 1, this.z];
+                    xIndex = i - xMax;
+                    zIndex = j;
+                }
+                else if (j >= zMax) {
+                    //north
+                    chunk = this.world.chunks[this.x][this.z + 1];
+                    bufferKey = [this.x, this.z + 1];
+                    xIndex = i;
+                    zIndex = j - zMax;
+                }
+
+                let block1 = new Block(xIndex, y + 3, zIndex, null, Block.Type.LEAVES);
+                let block2 = new Block(xIndex, y + 4, zIndex, null, Block.Type.LEAVES);
+
+                if (chunk != null) {
+
+                    if (chunk.blocks[xIndex][y + 3][zIndex] == null) {
+                        block1.setChunk(chunk);
+                    }
+                    if (chunk.blocks[xIndex][y + 4][zIndex] == null) {
+                        block2.setChunk(chunk);
+                    }
+                }
+                else {
+                    this.world.addBlockToBuffer(bufferKey[0], bufferKey[1], block1);
+                    this.world.addBlockToBuffer(bufferKey[0], bufferKey[1], block2);
                 }
             }
         }
