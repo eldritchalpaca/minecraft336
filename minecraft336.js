@@ -196,10 +196,6 @@ function getChar(event) {
 }
 
 async function handleKeyPress(event) {
-    // if (event.key == "SHIFT") {
-    //     oldX = canvas.innerWidth / 2;
-    //     oldY = canvas.innerHeight / 2;
-    // }
 
     if (event.key = "[") {
         if (!document.pointerLockElement) {
@@ -218,38 +214,6 @@ async function handleKeyPress(event) {
 
 function handleMouseClick(event) {
     console.log(event);
-}
-
-function isMouseInTopHalf(event) {
-    let mouseY = event.offsetY;
-    let target = event.target;
-    let middle = target.height / 2;
-
-    return mouseY > middle;
-}
-
-function isMouseInBottomHalf(event) {
-    let mouseY = event.offsetY;
-    let target = event.target;
-    let middle = target.height / 2;
-
-    return mouseY < middle;
-}
-
-function isMouseInLeftHalf(event) {
-    let mouseX = event.offsetX;
-    let target = event.target;
-    let middle = target.width / 2;
-
-    return mouseX < middle;
-}
-
-function isMouseInRightHalf(event) {
-    let mouseX = event.offsetX;
-    let target = event.target;
-    let middle = target.width / 2;
-
-    return mouseX > middle;
 }
 
 /**
