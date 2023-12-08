@@ -29,7 +29,6 @@ class World extends CS336Object {
         this.setRenderedChunks();
 
         this.highlightedBlock = null;
-
     }
 
     /**
@@ -46,12 +45,29 @@ class World extends CS336Object {
         return new THREE.Vector3(x, y, z);
     }
 
+    /**
+     * get block given a world block coord
+     * @param {*} x 
+     * @param {*} y 
+     * @param {*} z 
+     * @returns 
+     */
     getBlock(x, y, z) {
         let chunk = this.chunks[Math.floor(x / Chunk.CHUNK_SIZE_X)][Math.floor(z / Chunk.CHUNK_SIZE_Z)];
         x = x % Chunk.CHUNK_SIZE_X;
         z = z % Chunk.CHUNK_SIZE_Z;
 
         return chunk.blocks[x][y][z];
+    }
+
+    /**
+     * get chunk given a world block coord
+     * @param {*} x 
+     * @param {*} z 
+     * @returns 
+     */
+    getChunk(x, z) {
+        return this.chunks[Math.floor(x / Chunk.CHUNK_SIZE_X)][Math.floor(z / Chunk.CHUNK_SIZE_Z)];
     }
 
     addBlockToBuffer(chunkX, chunkZ, block) {

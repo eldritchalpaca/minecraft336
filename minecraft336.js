@@ -214,6 +214,11 @@ async function handleKeyPress(event) {
 
 function handleMouseClick(event) {
     console.log(event);
+
+    if (event.button == 2 && world.highlightedBlock != null) {
+        world.highlightedBlock.destroy();
+        world.highlightedBlock = null;
+    }
 }
 
 /**
@@ -233,16 +238,13 @@ function handleMouseMove(event) {
 
     //third column of view matrix
     var cameraLookVector = (new THREE.Vector3(cameraMatrix.elements[2], cameraMatrix.elements[6], cameraMatrix.elements[10])).normalize();
-    // if (cameraLookVector == cameraLookBlock) {
-     //   m == 0.3;
-    // }
 
     strafeDirection = (cameraLookVector.cross(new THREE.Vector3(0, 1, 0))).normalize();
 
     //pitch rotation
     world.camera.rotateOnAxis(movementY * 0.1, strafeDirection.x, strafeDirection.y, strafeDirection.z);
 
-
+    //find block that we're looking at and highlight it
     cameraLookVector = (new THREE.Vector3(cameraMatrix.elements[2], cameraMatrix.elements[6], cameraMatrix.elements[10])).normalize();
 
     let clickDistance = 4;

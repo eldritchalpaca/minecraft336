@@ -31,6 +31,18 @@ class Block extends CS336Object {
         }
     }
 
+    destroy() {
+        this.chunk.blocks[this.x][this.y][this.z] = null;
+        this.chunk.removeChild(this);
+        this.getNeighbors().forEach(function(block) {
+            block.needsUpdate = true;
+        });
+    }
+
+    equals(o) {
+        return this.x == o.x && this.y == o.y && this.z == o.z && this.chunk.x == o.chunk.x && this.chunk.z == o.chunk.z;
+    }
+
     setChunk(chunk) {
         chunk.addChild(this);
         chunk.blocks[this.x][this.y][this.z] = this;
@@ -43,6 +55,10 @@ class Block extends CS336Object {
     }
 
     hasNorthNeighbor() {
+        return this.getNorthNeighbor() != null;
+    }
+
+    getNorthNeighbor() {
 
         let neighbor;
 
@@ -60,9 +76,13 @@ class Block extends CS336Object {
             neighbor = this.chunk.blocks[this.x][this.y][this.z - 1];
         }
 
-        return neighbor != null;
+        return neighbor;
     }
+
     hasSouthNeighbor() {
+        return this.getSouthNeighbor() != null;
+    }
+    getSouthNeighbor() {
         let neighbor;
 
         if (this.z + 1 > Chunk.CHUNK_SIZE_Z - 1 && this.chunk.z < World.WORLD_SIZE - 1) {
@@ -79,9 +99,13 @@ class Block extends CS336Object {
             neighbor = this.chunk.blocks[this.x][this.y][this.z + 1];
         }
 
-        return neighbor != null;
+        return neighbor;
     }
+
     hasEastNeighbor() {
+        return this.getEastNeighbor() != null;
+    }
+    getEastNeighbor() {
         let neighbor;
 
         if (this.x + 1 > Chunk.CHUNK_SIZE_X - 1 && this.chunk.x < World.WORLD_SIZE - 1) {
@@ -98,9 +122,12 @@ class Block extends CS336Object {
             neighbor = this.chunk.blocks[this.x + 1][this.y][this.z];
         }
 
-        return neighbor != null;
+        return neighbor;
     }
     hasWestNeighbor() {
+        return this.getWestNeighbor() != null;
+    }
+    getWestNeighbor() {
 
         let neighbor;
 
@@ -118,25 +145,56 @@ class Block extends CS336Object {
             neighbor = this.chunk.blocks[this.x - 1][this.y][this.z];
         }
 
-        return neighbor != null;
+        return neighbor;
     }
+
     hasUpstairsNeighbor() {
+        return this.getUpstairsNeighbor() != null;
+    }
+    getUpstairsNeighbor() {
         let neighbor;
         try {
             neighbor = this.chunk.blocks[this.x][this.y + 1][this.z];
         } catch (err) {
             neighbor = null;
         }
-        return neighbor != null;
+        return neighbor;
     }
-    hasDownstairsNeighbor() {
+    hasDownstairsNeighbor(){
+        return this.getDownstairsNeighbor() != null;
+    }
+    getDownstairsNeighbor() {
         let neighbor;
         try {
             neighbor = this.chunk.blocks[this.x][this.y - 1][this.z];
         } catch (err) {
             neighbor = null;
         }
-        return neighbor != null;
+        return neighbor;
+    }
+
+    getNeighbors() {
+        let neighbors = [];
+
+        let block = this.getUpstairsNeighbor();
+        block != null ? neighbors.push(block) : null;
+
+        block = this.getDownstairsNeighbor();
+        block != null ? neighbors.push(block) : null;
+
+        block = this.getEastNeighbor();
+        block != null ? neighbors.push(block) : null;
+
+        block = this.getWestNeighbor();
+        block != null ? neighbors.push(block) : null;
+
+        block = this.getNorthNeighbor();
+        block != null ? neighbors.push(block) : null;
+
+        block = this.getSouthNeighbor();
+        block != null ? neighbors.push(block) : null;
+
+        return neighbors;
     }
     isSurrounded() {
         if (!this.needsUpdate) {

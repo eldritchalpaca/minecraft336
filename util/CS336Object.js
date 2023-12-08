@@ -40,6 +40,22 @@ class CS336Object {
   addChild(child) {
     this.children.push(child);
   }
+
+  removeChild(child) {
+    let index = this.children.findIndex(function (c) {
+      return child.equals(c);
+    });
+
+    if (index == -1){
+      return;
+    }
+
+    let tmp = this.children[index];
+    this.children[index] = this.children[this.children.length - 1];
+    this.children[this.children.length - 1] = tmp;
+
+    this.children.pop();
+  }
   /**
    * Renders this object using the drawObject callback function and recursing
    * through the children.
