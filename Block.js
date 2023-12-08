@@ -24,6 +24,7 @@ class Block extends CS336Object {
 
         this.visible = false;
         this.needsUpdate = true;
+        this.isHighlighted = false;
 
         if (chunk != null) {
             this.setChunk(chunk);
@@ -157,6 +158,6 @@ class Block extends CS336Object {
 
     render(matrixWorld) {
         var current = new THREE.Matrix4().copy(matrixWorld).multiply(this.getMatrix());
-        this.drawObject(current, this.blockType);
+        this.drawObject(current, this.blockType, this.isHighlighted);
     }
 }

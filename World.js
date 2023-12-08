@@ -28,6 +28,30 @@ class World extends CS336Object {
 
         this.setRenderedChunks();
 
+        this.highlightedBlock = null;
+
+    }
+
+    /**
+     * Returns the camera position relative to the current chunk
+     */
+    getCameraChunkCoords() {
+        let x = this.camera.position.x;
+        let y = this.camera.position.y;
+        let z = this.camera.position.z;
+
+        x = x % Chunk.CHUNK_SIZE_X;
+        z = z % Chunk.CHUNK_SIZE_Z;
+
+        return new THREE.Vector3(x, y, z);
+    }
+
+    getBlock(x, y, z) {
+        let chunk = this.chunks[Math.floor(x / Chunk.CHUNK_SIZE_X)][Math.floor(z / Chunk.CHUNK_SIZE_Z)];
+        x = x % Chunk.CHUNK_SIZE_X;
+        z = z % Chunk.CHUNK_SIZE_Z;
+
+        return chunk.blocks[x][y][z];
     }
 
     addBlockToBuffer(chunkX, chunkZ, block) {

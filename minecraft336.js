@@ -287,16 +287,45 @@ function handleMouseMove(event) {
     //third column of view matrix
     var cameraLookVector = (new THREE.Vector3(cameraMatrix.elements[2], cameraMatrix.elements[6], cameraMatrix.elements[10])).normalize();
     // if (cameraLookVector == cameraLookBlock) {
-        m == 0.3;
+     //   m == 0.3;
     // }
 
     strafeDirection = (cameraLookVector.cross(new THREE.Vector3(0, 1, 0))).normalize();
 
     //pitch rotation
     world.camera.rotateOnAxis(movementY * 0.1, strafeDirection.x, strafeDirection.y, strafeDirection.z);
+
+
+    cameraLookVector = (new THREE.Vector3(cameraMatrix.elements[2], cameraMatrix.elements[6], cameraMatrix.elements[10])).normalize();
+
+    let clickDistance = 4;
+    let pos = world.camera.position;
+
+    for (let i = 1; i <= clickDistance; ++i) {
+        let v = new THREE.Vector3();
+        v.copy(cameraLookVector);
+        v.multiplyScalar(-1 * i);
+        v.add(pos);
+
+        let block = world.getBlock(Math.floor(v.x), Math.floor(v.y), Math.floor(v.z))
+
+        if (block != null) {
+            block.isHighlighted = true;
+            if (world.highlightedBlock != null) {
+                world.highlightedBlock.isHighlighted = false;
+            }
+            world.highlightedBlock = block;
+            return;
+        }
+    }
+
+    if (world.highlightedBlock != null) {
+        world.highlightedBlock.isHighlighted = false;
+        world.highlightedBlock = null;
+    }
 }
 
-function drawCube(matrix, texIndex) {
+function drawCube(matrix, texIndex, isHighlighted) {
     // bind the shader
     gl.useProgram(colorShader);
 
@@ -312,7 +341,11 @@ function drawCube(matrix, texIndex) {
         return;
     }
 
-    m = 0.0;
+    let m = 0.1;
+
+     if (isHighlighted) {
+        m = 0.3;
+     }
 
     // "enable" the a_position attribute
     gl.enableVertexAttribArray(positionIndex);
@@ -341,6 +374,9 @@ function drawCube(matrix, texIndex) {
 
     // sampler value in shader is set to index for texture unit
     gl.uniform1i(loc, textureUnit);
+
+    loc = gl.getUniformLocation(colorShader, "m");
+    gl.uniform1f(loc, m);
 
     gl.drawArrays(gl.TRIANGLES, 0, model.numVertices);
 
