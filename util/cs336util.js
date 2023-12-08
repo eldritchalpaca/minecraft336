@@ -171,7 +171,7 @@ function getGraphicsContext(canvasId) {
   }
   
   // allocates texture memory and loads the given image
-  function createAndLoadTexture(image, index)
+  function createAndLoadTexture(image)
   {
     // ask the GPU to create a texture object
     let textureHandle = gl.createTexture();
@@ -179,7 +179,7 @@ function getGraphicsContext(canvasId) {
     // choose a texture unit to use during setup, defaults to zero
     // (can use a different one when drawing)
     // max value is MAX_COMBINED_TEXTURE_IMAGE_UNITS
-    gl.activeTexture(gl.TEXTURE0 + index);
+    gl.activeTexture(gl.TEXTURE0);
   
     // bind the texture
     gl.bindTexture(gl.TEXTURE_2D, textureHandle);

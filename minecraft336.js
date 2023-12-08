@@ -10,7 +10,6 @@ var lightingShader;
 var colorShader;
 var crosshairShader;
 var textureHandles = [];
-var crosshairHandle;
 var model;
 
 var world = new World();
@@ -26,7 +25,6 @@ var sandImage = "./textures/sand64.png";
 var logImage = "./textures/log.png";
 var leavesImage = "./textures/leaves.png";
 var waterImage = "./textures/water.png";
-var crosshairImage = "./textures/crosshair.png";
 
 var bedrock = [];
 var stone = [];
@@ -52,7 +50,6 @@ async function loadTextures() {
     logImage = await loadImagePromise(logImage);
     leavesImage = await loadImagePromise(leavesImage);
     waterImage = await loadImagePromise(waterImage);
-    crosshairImage = await loadImagePromise(crosshairImage);
 
     bedrock = [
         bedrockImage,
@@ -147,12 +144,10 @@ async function loadTextures() {
         water
     ];
 
-    for (let i = 0; i < textures.length; ++i) {
+    let i;
+    for (i = 0; i < textures.length; ++i) {
         textureHandles[i] = createAndLoadCubeTexture(textures[i], i);
     }
-
-    crosshairHandle = createAndLoadTexture(crosshairImage);
-
 }
 
 // vertex shader
@@ -185,6 +180,7 @@ void main()
   // and use the value directly as the surface color
   vec4 color = textureCube(sampler, fTexVector) + m;
   //vec4 color = vec4(1.0, 0.0, 0.0, 1.0);
+
   gl_FragColor = color;
 }
 `;
@@ -192,12 +188,8 @@ void main()
 // vertex shader
 const vcrosshairShaderSource = `
 attribute vec4 a_Position;
-attribute vec2 a_TexCoord;
-varying vec2 fTexCoord;
 void main()
 {
-  // pass through so the value gets interpolated
-  fTexCoord = a_TexCoord;
   gl_Position = a_Position;
 }
 `;
@@ -205,13 +197,9 @@ void main()
 // fragment shader
 const fcrosshairShaderSource = `
 precision mediump float;
-uniform sampler2D sampler;
-varying vec2 fTexCoord;
 void main()
 {
-  // sample from the texture at the interpolated texture coordinate,
-  // and use the value directly as the surface color
-  vec4 color = texture2D(sampler, fTexCoord);
+  vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
   gl_FragColor = color;
 }
 `;
@@ -219,21 +207,12 @@ void main()
 //location of crosshair
 var numPoints = 6;
 var crosshairVertices = new Float32Array([
-    -0.05, -0.075,
-    0.05, -0.075,
-    0.05, 0.075,
-    -0.05, -0.075,
-    0.05, 0.075,
-    -0.05, 0.075
-]);
-
-var texCrosshairCoords = new Float32Array([
-    0.0, 0.0,
-    0.5, 0.0,
-    0.5, 1.0,
-    0.0, 0.0,
-    0.5, 1.0,
-    0.0, 1.0,
+    -0.01, -0.015,
+    0.01, -0.015,
+    0.01, 0.015,
+    -0.01, -0.015,
+    0.01, 0.015,
+    -0.01, 0.015
 ]);
 
 //translate keypress events to strings
@@ -391,6 +370,8 @@ function drawCube(matrix, texIndex, isHighlighted) {
 function draw() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BIT);
 
+    world.render(new THREE.Matrix4());
+
     gl.useProgram(crosshairShader);
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexCrosshairBuffer);
 
@@ -402,30 +383,10 @@ function draw() {
     
     gl.enableVertexAttribArray(positionIndex);
     gl.vertexAttribPointer(positionIndex, 2, gl.FLOAT, false, 0, 0);
-    gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
 
-    var texCoordIndex = gl.getAttribLocation(crosshairShader, 'a_TexCoord');
-    if (texCoordIndex < 0) {
-        console.log('Failed to get the storage location of a_TexCoord');
-        return;
-    }
-
-    gl.enableVertexAttribArray(texCoordIndex);
-    gl.vertexAttribPointer(texCoordIndex, 2, gl.FLOAT, false, 0, 0);
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
-
-    var textureUnit = 0;
-    gl.activeTexture(gl.TEXTURE0 + textureUnit);
-    gl.bindTexture(gl.TEXTURE_2D, crosshairHandle);
-    gl.activeTexture(gl.TEXTURE0);
-
-    var loc = gl.getUniformLocation(crosshairShader, "sampler");
-    gl.uniform1i(loc, textureUnit);
     gl.drawArrays(gl.TRIANGLES, 0, numPoints);
     gl.disableVertexAttribArray(positionIndex);
     gl.useProgram(null);
-
-    world.render(new THREE.Matrix4());
 }
 
 let canvas;
@@ -435,7 +396,6 @@ async function main() {
 
     await loadTextures();
 
-    gl.bindTexture(gl.TEXTURE_2D, crosshairHandle);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
     model = getModelData(new THREE.BoxGeometry());
@@ -455,7 +415,6 @@ async function main() {
     texCoordBuffer = createAndLoadBuffer(model.texCoords);
 
     vertexCrosshairBuffer = createAndLoadBuffer(crosshairVertices);
-    texCrosshairBuffer = createAndLoadBuffer(texCrosshairCoords);
 
     window.onkeypress = handleKeyPress;
     canvas.onmousedown = handleMouseClick;
