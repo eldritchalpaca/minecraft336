@@ -276,19 +276,29 @@ function handleMouseMove(event) {
     //pitch rotation
     world.camera.rotateOnAxis(movementY * 0.1, strafeDirection.x, strafeDirection.y, strafeDirection.z);
 
+    setHighlightedBlock();
+}
+
+function setHighlightedBlock() {
     //find block that we're looking at and highlight it
-    cameraLookVector = (new THREE.Vector3(cameraMatrix.elements[2], cameraMatrix.elements[6], cameraMatrix.elements[10])).normalize();
+    let cameraMatrix = world.camera.getView();
+    let cameraLookVector = (new THREE.Vector3(cameraMatrix.elements[2], cameraMatrix.elements[6], cameraMatrix.elements[10])).normalize();
 
     let clickDistance = 4;
     let pos = world.camera.position;
 
-    for (let i = 1; i <= clickDistance; ++i) {
+    for (let i = 0.1; i <= clickDistance; i += 0.1) {
         let v = new THREE.Vector3();
         v.copy(cameraLookVector);
         v.multiplyScalar(-1 * i);
         v.add(pos);
 
-        let block = world.getBlock(Math.floor(v.x), Math.floor(v.y), Math.floor(v.z))
+        let block = world.getBlock(Math.round(v.x), Math.round(v.y), Math.round(v.z))
+
+        if (world.highlightedBlock != null) {
+            world.highlightedBlock.isHighlighted = false;
+            world.highlightedBlock = null;
+        }
 
         if (block != null) {
             block.isHighlighted = true;
@@ -298,11 +308,6 @@ function handleMouseMove(event) {
             world.highlightedBlock = block;
             return;
         }
-    }
-
-    if (world.highlightedBlock != null) {
-        world.highlightedBlock.isHighlighted = false;
-        world.highlightedBlock = null;
     }
 }
 
@@ -324,9 +329,9 @@ function drawCube(matrix, texIndex, isHighlighted) {
 
     let m = 0.1;
 
-     if (isHighlighted) {
+    if (isHighlighted) {
         m = 0.3;
-     }
+    }
 
     // "enable" the a_position attribute
     gl.enableVertexAttribArray(positionIndex);
@@ -380,7 +385,7 @@ function draw() {
         console.log('Failed to get the storage location of a_Position');
         return;
     }
-    
+
     gl.enableVertexAttribArray(positionIndex);
     gl.vertexAttribPointer(positionIndex, 2, gl.FLOAT, false, 0, 0);
 

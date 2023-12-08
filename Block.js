@@ -37,6 +37,7 @@ class Block extends CS336Object {
         this.getNeighbors().forEach(function(block) {
             block.needsUpdate = true;
         });
+        setHighlightedBlock();
     }
 
     equals(o) {
