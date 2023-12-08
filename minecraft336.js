@@ -279,6 +279,13 @@ function handleMouseMove(event) {
     setHighlightedBlock();
 }
 
+let left =      new THREE.Vector3(-1,  0,  0);
+let right =     new THREE.Vector3( 1,  0,  0);
+let up =        new THREE.Vector3( 0,  1,  0);
+let down =      new THREE.Vector3( 0, -1,  0);
+let forwards =  new THREE.Vector3( 0,  0, -1);
+let backwards = new THREE.Vector3( 0,  0,  1);
+
 function setHighlightedBlock() {
     //find block that we're looking at and highlight it
     let cameraMatrix = world.camera.getView();
@@ -287,7 +294,7 @@ function setHighlightedBlock() {
     let clickDistance = 4;
     let pos = world.camera.position;
 
-    for (let i = 0.1; i <= clickDistance; i += 0.1) {
+    for (let i = 0.01; i <= clickDistance; i += 0.2) {
         let v = new THREE.Vector3();
         v.copy(cameraLookVector);
         v.multiplyScalar(-1 * i);
@@ -306,8 +313,67 @@ function setHighlightedBlock() {
                 world.highlightedBlock.isHighlighted = false;
             }
             world.highlightedBlock = block;
-            return;
+           // console.log(getSideFacingCamera(block));
+           return;
         }
+    }
+}
+
+//doesn't work :(
+function getSideFacingCamera(block) {
+    let worldMatrix = new THREE.Matrix4().copy(world.getMatrix());
+    let chunkMatrix = new THREE.Matrix4().copy(block.chunk.getMatrix());
+    let blockMatrix = new THREE.Matrix4().copy(block.getMatrix());
+
+    blockMatrix = worldMatrix.multiply(chunkMatrix).multiply(blockMatrix);
+
+    let view = new THREE.Matrix4().copy(world.camera.getView());
+
+    let modelView = view.multiply(blockMatrix);
+
+    let eye_left =      left.applyMatrix4(modelView);
+    let eye_right =     right.applyMatrix4(modelView);
+    let eye_up =        up.applyMatrix4(modelView);
+    let eye_down =      down.applyMatrix4(modelView);
+    let eye_forwards =  forwards.applyMatrix4(modelView);
+    let eye_backwards = backwards.applyMatrix4(modelView);
+
+    let cubeToCamera4 = (new THREE.Vector4(0, 0, 0, 1)).applyMatrix4(modelView);
+    let cubeToCamera = (new THREE.Vector3(cubeToCamera4.x, cubeToCamera4.y, cubeToCamera4.z)).normalize().negate();
+
+    let dot_left =      cubeToCamera.dot(eye_left);
+    let dot_right =     cubeToCamera.dot(eye_right);
+    let dot_up =        cubeToCamera.dot(eye_up);
+    let dot_down =      cubeToCamera.dot(eye_down);
+    let dot_forwards =  cubeToCamera.dot(eye_forwards);
+    let dot_backwards = cubeToCamera.dot(eye_backwards);
+
+    let dots = [
+        dot_left,
+        dot_right,
+        dot_up,
+        dot_down,
+        dot_forwards,
+        dot_backwards
+    ];
+
+    dots.sort((a, b) => a - b);
+
+    let highest = dots[dots.length - 1];
+
+    switch (highest) {
+        case dot_left:
+            return "west"
+        case dot_right:
+            return "east"
+        case dot_up:
+            return "up"
+        case dot_down:
+            return "down"
+        case dot_forwards:
+            return "north"
+        case dot_backwards:
+            return "south"
     }
 }
 
@@ -401,8 +467,6 @@ async function main() {
 
     await loadTextures();
 
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-
     model = getModelData(new THREE.BoxGeometry());
     gl.clearColor(0.25, 0.75, 1.0, 1.0);
 
@@ -423,7 +487,6 @@ async function main() {
 
     window.onkeypress = handleKeyPress;
     canvas.onmousedown = handleMouseClick;
-    //window.onmousemove = handleMouseMove;
     canvas.addEventListener("mousemove", handleMouseMove);
     var animate = function () {
         draw();
