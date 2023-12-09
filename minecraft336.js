@@ -6,10 +6,12 @@ var vertexCrosshairBuffer;
 var texCoordBuffer;
 var texCrosshairBuffer;
 var indexBuffer;
+var uvBuffer;
 var lightingShader;
 var colorShader;
 var crosshairShader;
 var textureHandles = [];
+var lightPosition = new THREE.Vector3(-1, 1, -1);
 var model;
 
 var world = new World();
@@ -155,14 +157,30 @@ const vshaderSource = `
 uniform mat4 transform;
 attribute vec4 a_Position;
 attribute vec2 a_TexCoord;
+attribute vec4 uv;
 varying vec2 fTexCoord;
 varying vec3 fTexVector;
+varying vec2 fragment_uv;
+varying float fragment_ao;
+varying float fragment_light;
+varying float diffuse;
+
+varying vec3 fL;
+varying vec3 fN;
+const vec3 light_direction = normalize(vec3(-1.0, 1.0, -1.0));
 
 void main()
 {
+  vec3 N = normalize(fN);
+  vec3 L = normalize(fL);
+  fragment_uv = uv.xy;
+  fragment_ao = 0.3 + (1.0 - uv.z) * 0.7;
+  fragment_light = uv.w;
+  diffuse = min(0.0, dot(N, light_direction));
+
   // pass through so the value gets interpolated
   fTexCoord = a_TexCoord;
-  fTexVector = a_Position.xyz;
+  fTexVector = a_Position.xyz / fragment_light;
   gl_Position = transform * a_Position;
 }
 `;
@@ -174,6 +192,14 @@ uniform samplerCube sampler;
 varying vec2 fTexCoord;
 varying vec3 fTexVector;
 uniform float m;
+
+varying vec3 fL;
+varying vec3 fN;
+varying vec2 fragment_uv;
+varying float fragment_ao;
+varying float fragment_light;
+varying float diffuse;
+
 void main()
 {
   // sample from the texture at the interpolated texture coordinate,
@@ -181,7 +207,16 @@ void main()
   vec4 color = textureCube(sampler, fTexVector) + m;
   //vec4 color = vec4(1.0, 0.0, 0.0, 1.0);
 
-  gl_FragColor = color;
+  vec3 N = normalize(fN);
+  vec3 L = normalize(fL);
+  float value = max(1.0, fragment_light);
+  vec4 light_color = vec4(value + 0.2);
+  vec4 ambient = vec4(value * 0.8 + 0.2);
+  vec4 specular = 0.0 * light_color; 
+  float shadow = 10.0;
+  vec4 light = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;
+
+  gl_FragColor = light, 1.0;
 }
 `;
 
@@ -247,7 +282,7 @@ async function handleKeyPress(event) {
 function handleMouseClick(event) {
     console.log(event);
 
-    if (event.button == 2 && world.highlightedBlock != null) {
+    if (event.button == 0 && world.highlightedBlock != null) {
         world.highlightedBlock.destroy();
         world.highlightedBlock = null;
     }
@@ -393,6 +428,12 @@ function drawCube(matrix, texIndex, isHighlighted) {
         return;
     }
 
+    var uvIndex = gl.getAttribLocation(colorShader, 'uv');
+    if (uvIndex < 0) {
+        console.log('Failed to get the storage location of uv');
+        return;
+    }
+
     let m = 0.1;
 
     if (isHighlighted) {
@@ -402,12 +443,15 @@ function drawCube(matrix, texIndex, isHighlighted) {
     // "enable" the a_position attribute
     gl.enableVertexAttribArray(positionIndex);
     gl.enableVertexAttribArray(texCoordIndex);
+    gl.enableVertexAttribArray(uvIndex);
 
     // bind buffers for points
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
     gl.vertexAttribPointer(positionIndex, 3, gl.FLOAT, false, 0, 0);
     gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
     gl.vertexAttribPointer(texCoordIndex, 2, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, uvBuffer);
+    gl.vertexAttribPointer(uvIndex, 2, gl.FLOAT, false, 0, 0);
 
     var projection = world.camera.getProjection();
     var view = world.camera.getView();
@@ -434,6 +478,7 @@ function drawCube(matrix, texIndex, isHighlighted) {
 
     gl.disableVertexAttribArray(positionIndex);
     gl.disableVertexAttribArray(texCoordIndex);
+    gl.disableVertexAttribArray(uvIndex);
     gl.useProgram(null);
     gl.bindTexture(gl.TEXTURE_CUBE_MAP, null);
 }
@@ -482,6 +527,7 @@ async function main() {
     // load the vertex data into GPU memory
     vertexBuffer = createAndLoadBuffer(model.vertices);
     texCoordBuffer = createAndLoadBuffer(model.texCoords);
+    uvBuffer = createAndLoadBuffer(model.uvs);
 
     vertexCrosshairBuffer = createAndLoadBuffer(crosshairVertices);
 
