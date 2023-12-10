@@ -2,10 +2,13 @@ class World extends CS336Object {
 
     static WORLD_SIZE = 100;
     static PLAYER_HEIGHT = 1.97;
-    static RENDER_DISTANCE = 4;
+    static RENDER_DISTANCE = 5;
 
-    constructor() {
+    constructor(seed) {
         super();
+
+        seed = seed ? seed : Math.random();
+        noise.seed(seed);
 
         this.chunkRenderBuffer = new Map();
 
@@ -21,7 +24,7 @@ class World extends CS336Object {
 
         let cameraX = this.currentChunk.x * Chunk.CHUNK_SIZE_X;
         let cameraZ = this.currentChunk.z * Chunk.CHUNK_SIZE_Z;
-        let cameraY = this.currentChunk.getHighestY(0, 0) + World.PLAYER_HEIGHT;
+        let cameraY = this.currentChunk.getHighestY(0, 0) + World.PLAYER_HEIGHT + 10;
         
         //camera is set to center of world
         this.camera.setPosition(cameraX, cameraY, cameraZ);

@@ -2,8 +2,9 @@ class Chunk extends CS336Object {
 
     static CHUNK_SIZE_X = 16;
     static CHUNK_SIZE_Z = 16;
-    static WORLD_HEIGHT = 64;
-    static SEA_LEVEL = 32;
+    static WORLD_HEIGHT = 128;
+    static SEA_LEVEL = Chunk.WORLD_HEIGHT / 4;
+    static OCTAVES = 3;
 
     constructor(x, z, world) {
         super();
@@ -37,19 +38,38 @@ class Chunk extends CS336Object {
 
         let i = 0;
         let j = 0;
+        let k = 0;
+        let lancunarity = 1.8715;
+        let gain = 1.0 / lancunarity;
+
+        // let damper = changeScale(noise.perlin2(this.x, this.z), -0.5, 0.5, 1, 10);
+        let damper = 3;
+
+        console.log(damper);
 
         for (let x = this.x * Chunk.CHUNK_SIZE_X; x < this.x * Chunk.CHUNK_SIZE_X + Chunk.CHUNK_SIZE_X; ++x) {
             for (let z = this.z * Chunk.CHUNK_SIZE_Z; z < this.z * Chunk.CHUNK_SIZE_Z + Chunk.CHUNK_SIZE_Z; ++z) {
 
-                let changeFactor = .05;
-                let scale = 15;
-                let y = perlin.get(x * changeFactor, z * changeFactor);
-                y = y * scale;
+                let y = 0.0;
+                let frequency = 0.025;
+                let amplitude = gain * damper;
 
-                y = changeScale(y, -1 * scale, 1 * scale, 0, Chunk.WORLD_HEIGHT);
+                for (k = 0; k < Chunk.OCTAVES; ++k) {    
+                    
+                    y += noise.perlin2(x * frequency, z * frequency) * amplitude;
+                    frequency *= lancunarity;
+                    amplitude *= gain;
+
+                    // let changeFactor = .05;
+                    // let scale = 15;
+                    // let y = perlin.get(x * changeFactor, z * changeFactor);
+                    // y = y * scale;
+                }
+
+                y = clamp(y, -1, 1);
+                y = changeScale(y, -1, 1, 1, Chunk.WORLD_HEIGHT - 1);
 
                 y = Math.round(y);
-
                 this.height[i][j] = y;
 
                 j++;
@@ -103,7 +123,7 @@ class Chunk extends CS336Object {
 
                     //add trees
                     if (block.blockType != Block.Type.WATER && getRandomInteger(1, 30) == 10) {
-                        this.buildTree(x, y + 1, z);
+                       // this.buildTree(x, y + 1, z);
                     }
                 }
             }

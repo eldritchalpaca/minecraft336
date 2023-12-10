@@ -15,3 +15,7 @@ function changeScale(val, oldLow, oldHigh, newLow, newHigh) {
 function getRandomInteger(min, max) {
     return Math.floor(Math.random() * (max - min + 1) ) + min;
   }
+
+  function clamp(val, min, max) {
+    return Math.min(Math.max(val, min), max);
+  }
