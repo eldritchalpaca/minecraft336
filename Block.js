@@ -1,18 +1,5 @@
 class Block extends CS336Object {
 
-    static Type = {
-        BEDROCK : 0,
-        STONE : 1,
-        ORE : 2,
-        GRAVEL : 3,
-        DIRT : 4,
-        GRASS : 5,
-        SAND : 6,
-        LOG : 7,
-        LEAVES : 8,
-        WATER : 9
-    }
-
     constructor(x, y, z, chunk, blockType) {
         super(drawCube);
         this.setPosition(x, y, z);
@@ -68,7 +55,7 @@ class Block extends CS336Object {
             if (neighborChunk == null) {
                 return null;
             }
-            neighbor = neighborChunk.blocks[this.x][this.y][Chunk.CHUNK_SIZE_Z - 1];
+            neighbor = neighborChunk.blocks[this.x][this.y][CHUNK_SIZE_Z - 1];
         }
         else if (this.z - 1 < 0) {
             neighbor = null;
@@ -86,14 +73,14 @@ class Block extends CS336Object {
     getSouthNeighbor() {
         let neighbor;
 
-        if (this.z + 1 > Chunk.CHUNK_SIZE_Z - 1 && this.chunk.z < World.WORLD_SIZE - 1) {
+        if (this.z + 1 > CHUNK_SIZE_Z - 1 && this.chunk.z < WORLD_SIZE - 1) {
             let neighborChunk = this.chunk.world.chunks[this.chunk.x][this.chunk.z + 1];
             if (neighborChunk == null) {
                 return null;
             }
             neighbor = neighborChunk.blocks[this.x][this.y][0];
         }
-        else if (this.z + 1 > Chunk.CHUNK_SIZE_Z - 1) {
+        else if (this.z + 1 > CHUNK_SIZE_Z - 1) {
             neighbor = null;
         }
         else {
@@ -109,14 +96,14 @@ class Block extends CS336Object {
     getEastNeighbor() {
         let neighbor;
 
-        if (this.x + 1 > Chunk.CHUNK_SIZE_X - 1 && this.chunk.x < World.WORLD_SIZE - 1) {
+        if (this.x + 1 > CHUNK_SIZE_X - 1 && this.chunk.x < WORLD_SIZE - 1) {
             let neighborChunk = this.chunk.world.chunks[this.chunk.x + 1][this.chunk.z];
             if (neighborChunk == null) {
                 return null;
             }
             neighbor = neighborChunk.blocks[0][this.y][this.z];
         }
-        else if (this.x + 1 > Chunk.CHUNK_SIZE_X - 1) {
+        else if (this.x + 1 > CHUNK_SIZE_X - 1) {
             neighbor = null;
         } 
         else {
@@ -137,7 +124,7 @@ class Block extends CS336Object {
             if (neighborChunk == null) {
                 return null;
             }
-            neighbor = neighborChunk.blocks[Chunk.CHUNK_SIZE_X - 1][this.y][this.z];
+            neighbor = neighborChunk.blocks[CHUNK_SIZE_X - 1][this.y][this.z];
         }
         else if (this.x - 1 < 0) {
             neighbor = null;
@@ -212,7 +199,7 @@ class Block extends CS336Object {
     }
 
     isOnChunkBorder() {
-        return this.x == 0 || this.z == 0 || this.x == Chunk.CHUNK_SIZE_X - 1 || this.z == Chunk.CHUNK_SIZE_Z - 1;
+        return this.x == 0 || this.z == 0 || this.x == CHUNK_SIZE_X - 1 || this.z == CHUNK_SIZE_Z - 1;
     }
 
     render(matrixWorld) {

@@ -1,40 +1,35 @@
 class Chunk extends CS336Object {
 
-    static CHUNK_SIZE_X = 16;
-    static CHUNK_SIZE_Z = 16;
-    static WORLD_HEIGHT = 128;
-    static SEA_LEVEL = Chunk.WORLD_HEIGHT / 4;
-    static OCTAVES = 3;
-
-    constructor(x, z, world) {
+    constructor(x, z, world, biome) {
         super();
 
-        this.blocks = createNDimArray([Chunk.CHUNK_SIZE_X, Chunk.WORLD_HEIGHT, Chunk.CHUNK_SIZE_Z]);
-        this.height = createNDimArray([Chunk.CHUNK_SIZE_X, Chunk.CHUNK_SIZE_Z]);
+        this.blocks = createNDimArray([CHUNK_SIZE_X, WORLD_HEIGHT, CHUNK_SIZE_Z]);
+        this.height = createNDimArray([CHUNK_SIZE_X, CHUNK_SIZE_Z]);
 
         this.world = world;
         this.x = x;
         this.z = z;
+        this.biome = biome;
 
-        for (let x = 0; x < Chunk.CHUNK_SIZE_X; ++x) {
-            for (let y = 0; y < Chunk.WORLD_HEIGHT; ++y) {
-                for (let z = 0; z < Chunk.CHUNK_SIZE_Z; ++z) {
+        for (let x = 0; x < CHUNK_SIZE_X; ++x) {
+            for (let y = 0; y < WORLD_HEIGHT; ++y) {
+                for (let z = 0; z < CHUNK_SIZE_Z; ++z) {
                     this.blocks[x][y][z] = null;
                 }
             }
         }
 
 
-        this.setPosition(Chunk.CHUNK_SIZE_X * x, 0, Chunk.CHUNK_SIZE_Z * z);
+        this.setPosition(CHUNK_SIZE_X * x, 0, CHUNK_SIZE_Z * z);
 
-        this.createHeightMap();
+        this.createHeightMap(biome.amplitude, biome.frequency);
 
-        this.createBlocks();
+        this.createBlocks(biome.top_block, biome.under_block);
 
         world.addChild(this);
     }
 
-    createHeightMap() {
+    createHeightMap(damper, freq) {
 
         let i = 0;
         let j = 0;
@@ -43,18 +38,17 @@ class Chunk extends CS336Object {
         let gain = 1.0 / lancunarity;
 
         // let damper = changeScale(noise.perlin2(this.x, this.z), -0.5, 0.5, 1, 10);
-        let damper = 3;
+        //let damper = .15;
+        //console.log(damper);
 
-        console.log(damper);
-
-        for (let x = this.x * Chunk.CHUNK_SIZE_X; x < this.x * Chunk.CHUNK_SIZE_X + Chunk.CHUNK_SIZE_X; ++x) {
-            for (let z = this.z * Chunk.CHUNK_SIZE_Z; z < this.z * Chunk.CHUNK_SIZE_Z + Chunk.CHUNK_SIZE_Z; ++z) {
+        for (let x = this.x * CHUNK_SIZE_X; x < this.x * CHUNK_SIZE_X + CHUNK_SIZE_X; ++x) {
+            for (let z = this.z * CHUNK_SIZE_Z; z < this.z * CHUNK_SIZE_Z + CHUNK_SIZE_Z; ++z) {
 
                 let y = 0.0;
-                let frequency = 0.025;
+                let frequency = freq;
                 let amplitude = gain * damper;
 
-                for (k = 0; k < Chunk.OCTAVES; ++k) {    
+                for (k = 0; k < OCTAVES; ++k) {    
                     
                     y += noise.perlin2(x * frequency, z * frequency) * amplitude;
                     frequency *= lancunarity;
@@ -67,7 +61,7 @@ class Chunk extends CS336Object {
                 }
 
                 y = clamp(y, -1, 1);
-                y = changeScale(y, -1, 1, 1, Chunk.WORLD_HEIGHT - 1);
+                y = changeScale(y, -1, 1, 1, WORLD_HEIGHT - 1);
 
                 y = Math.round(y);
                 this.height[i][j] = y;
@@ -79,7 +73,7 @@ class Chunk extends CS336Object {
         }
     }
 
-    createBlocks() {
+    createBlocks(topBlock, topBlock2) {
         let bufferBlocks = this.world.getChunkFromBuffer(this.x, this.z);
 
         this.world.removeChunkFromBuffer(this.x, this.z);
@@ -90,39 +84,39 @@ class Chunk extends CS336Object {
         }
 
         //use heightmap, set everything to stone
-        for (let x = 0; x < Chunk.CHUNK_SIZE_X; ++x) {
-            for (let z = 0; z < Chunk.CHUNK_SIZE_Z; ++z) {
+        for (let x = 0; x < CHUNK_SIZE_X; ++x) {
+            for (let z = 0; z < CHUNK_SIZE_Z; ++z) {
                 for (let y = 0; y < this.height[x][z]; ++y) {
-                    new Block(x, y, z, this, Block.Type.STONE);
+                    new Block(x, y, z, this, BlockType.STONE);
                 }
             }
         }
 
         //fill up to sea level with water
-        for (let x = 0; x < Chunk.CHUNK_SIZE_X; ++x) {
-            for (let z = 0; z < Chunk.CHUNK_SIZE_Z; ++z) {
-                for (let y = 0; y < Chunk.SEA_LEVEL; ++y) {
+        for (let x = 0; x < CHUNK_SIZE_X; ++x) {
+            for (let z = 0; z < CHUNK_SIZE_Z; ++z) {
+                for (let y = 0; y < SEA_LEVEL; ++y) {
                     if (this.blocks[x][y][z] == null) {
-                        new Block(x, y, z, this, Block.Type.WATER);
+                        new Block(x, y, z, this, BlockType.WATER);
                     }
                 }
             }
         }
 
-        for (let x = 0; x < Chunk.CHUNK_SIZE_X; ++x) {
-            for (let z = 0; z < Chunk.CHUNK_SIZE_Z; ++z) {
+        for (let x = 0; x < CHUNK_SIZE_X; ++x) {
+            for (let z = 0; z < CHUNK_SIZE_Z; ++z) {
                 let y = this.height[x][z] - 1;
                 let block = this.blocks[x][y][z];
 
                 //make top layer grass with 2 blocks dirt under it
-                if (block.blockType != Block.Type.WATER && !block.hasUpstairsNeighbor()) {
-                    this.blocks[x][y][z].blockType = Block.Type.GRASS;
-                    this.blocks[x][y - 1][z].blockType = Block.Type.DIRT;
-                    this.blocks[x][y - 2][z].blockType = Block.Type.DIRT;
+                if (block.blockType != BlockType.WATER && !block.hasUpstairsNeighbor()) {
+                    this.blocks[x][y][z].blockType = topBlock;
+                    this.blocks[x][y - 1][z].blockType = topBlock2;
+                    this.blocks[x][y - 2][z].blockType = topBlock2;
 
 
                     //add trees
-                    if (block.blockType != Block.Type.WATER && getRandomInteger(1, 30) == 10) {
+                    if (block.blockType != BlockType.WATER && getRandomInteger(1, 30) == 10) {
                        // this.buildTree(x, y + 1, z);
                     }
                 }
@@ -151,9 +145,9 @@ class Chunk extends CS336Object {
             z2 = tmp
         }
 
-        for (let x = Math.max(x1, 0); x <= x2 && x < Chunk.CHUNK_SIZE_X; x++) {
-            for (let y = Math.max(y1, 0); y <= y2 && y < Chunk.WORLD_HEIGHT; y++) {
-                for (let z = Math.max(z1, 0); z <= z2 && z < Chunk.CHUNK_SIZE_Z; z++) {
+        for (let x = Math.max(x1, 0); x <= x2 && x < CHUNK_SIZE_X; x++) {
+            for (let y = Math.max(y1, 0); y <= y2 && y < WORLD_HEIGHT; y++) {
+                for (let z = Math.max(z1, 0); z <= z2 && z < CHUNK_SIZE_Z; z++) {
                     if (this.blocks[x][y][z] != null) {
                         return false;
                     }
@@ -168,8 +162,8 @@ class Chunk extends CS336Object {
         let bufferKey = null;
         let xIndex;
         let zIndex;
-        let xMax = Chunk.CHUNK_SIZE_X;
-        let zMax = Chunk.CHUNK_SIZE_Z;
+        let xMax = CHUNK_SIZE_X;
+        let zMax = CHUNK_SIZE_Z;
 
         if (i >= 0 && i < xMax && j >= 0 && j < zMax) {
             //this chunk
@@ -251,10 +245,10 @@ class Chunk extends CS336Object {
             return;
         }
 
-        new Block(x, y - 1, z, this, Block.Type.DIRT);
+        new Block(x, y - 1, z, this, BlockType.DIRT);
 
         for (let i = y; i < y + 6; ++i) {
-            new Block(x, i, z, this, Block.Type.LOG);
+            new Block(x, i, z, this, BlockType.LOG);
         }
 
         for (let i = x - 2; i <= x + 2; i++) {
@@ -267,15 +261,15 @@ class Chunk extends CS336Object {
                 let xIndex = helper.xIndex;
                 let zIndex = helper.zIndex;
 
-                let block1 = new Block(xIndex, y + 3, zIndex, null, Block.Type.LEAVES);
-                let block2 = new Block(xIndex, y + 4, zIndex, null, Block.Type.LEAVES);
+                let block1 = new Block(xIndex, y + 3, zIndex, null, BlockType.LEAVES);
+                let block2 = new Block(xIndex, y + 4, zIndex, null, BlockType.LEAVES);
 
                 if (chunk != null) {
 
-                    if (chunk.blocks[xIndex][y + 3][zIndex] == null) {
+                    if (blocks[xIndex][y + 3][zIndex] == null) {
                         block1.setChunk(chunk);
                     }
-                    if (chunk.blocks[xIndex][y + 4][zIndex] == null) {
+                    if (blocks[xIndex][y + 4][zIndex] == null) {
                         block2.setChunk(chunk);
                     }
                 }
@@ -295,15 +289,15 @@ class Chunk extends CS336Object {
                 let xIndex = helper.xIndex;
                 let zIndex = helper.zIndex;
 
-                let block1 = new Block(xIndex, y + 5, zIndex, null, Block.Type.LEAVES);
-                let block2 = new Block(xIndex, y + 6, zIndex, null, Block.Type.LEAVES);
+                let block1 = new Block(xIndex, y + 5, zIndex, null, BlockType.LEAVES);
+                let block2 = new Block(xIndex, y + 6, zIndex, null, BlockType.LEAVES);
 
                 if (chunk != null) {
 
-                    if (chunk.blocks[xIndex][y + 5][zIndex] == null) {
+                    if (blocks[xIndex][y + 5][zIndex] == null) {
                         block1.setChunk(chunk);
                     }
-                    if (chunk.blocks[xIndex][y + 6][zIndex] == null) {
+                    if (blocks[xIndex][y + 6][zIndex] == null) {
                         block2.setChunk(chunk);
                     }
                 }

@@ -1,9 +1,5 @@
 class World extends CS336Object {
 
-    static WORLD_SIZE = 100;
-    static PLAYER_HEIGHT = 1.97;
-    static RENDER_DISTANCE = 5;
-
     constructor(seed) {
         super();
 
@@ -14,17 +10,17 @@ class World extends CS336Object {
 
         this.setPosition(0, 0, 0);
 
-        this.chunks = createNDimArray([World.WORLD_SIZE, World.WORLD_SIZE]);
+        this.chunks = createNDimArray([WORLD_SIZE, WORLD_SIZE]);
         
         this.createChunks();
 
         this.camera = new Camera(30, 1.5);
 
-        this.currentChunk = this.chunks[World.WORLD_SIZE / 2][World.WORLD_SIZE / 2];
+        this.currentChunk = this.chunks[WORLD_SIZE / 2][WORLD_SIZE / 2];
 
-        let cameraX = this.currentChunk.x * Chunk.CHUNK_SIZE_X;
-        let cameraZ = this.currentChunk.z * Chunk.CHUNK_SIZE_Z;
-        let cameraY = this.currentChunk.getHighestY(0, 0) + World.PLAYER_HEIGHT + 10;
+        let cameraX = this.currentChunk.x * CHUNK_SIZE_X;
+        let cameraZ = this.currentChunk.z * CHUNK_SIZE_Z;
+        let cameraY = this.currentChunk.getHighestY(0, 0) + PLAYER_HEIGHT + 5;
         
         //camera is set to center of world
         this.camera.setPosition(cameraX, cameraY, cameraZ);
@@ -42,8 +38,8 @@ class World extends CS336Object {
         let y = this.camera.position.y;
         let z = this.camera.position.z;
 
-        x = x % Chunk.CHUNK_SIZE_X;
-        z = z % Chunk.CHUNK_SIZE_Z;
+        x = x % CHUNK_SIZE_X;
+        z = z % CHUNK_SIZE_Z;
 
         return new THREE.Vector3(x, y, z);
     }
@@ -56,9 +52,9 @@ class World extends CS336Object {
      * @returns 
      */
     getBlock(x, y, z) {
-        let chunk = this.chunks[Math.floor(x / Chunk.CHUNK_SIZE_X)][Math.floor(z / Chunk.CHUNK_SIZE_Z)];
-        x = x % Chunk.CHUNK_SIZE_X;
-        z = z % Chunk.CHUNK_SIZE_Z;
+        let chunk = this.chunks[Math.floor(x / CHUNK_SIZE_X)][Math.floor(z / CHUNK_SIZE_Z)];
+        x = x % CHUNK_SIZE_X;
+        z = z % CHUNK_SIZE_Z;
 
         return chunk.blocks[x][y][z];
     }
@@ -70,7 +66,7 @@ class World extends CS336Object {
      * @returns 
      */
     getChunk(x, z) {
-        return this.chunks[Math.floor(x / Chunk.CHUNK_SIZE_X)][Math.floor(z / Chunk.CHUNK_SIZE_Z)];
+        return this.chunks[Math.floor(x / CHUNK_SIZE_X)][Math.floor(z / CHUNK_SIZE_Z)];
     }
 
     addBlockToBuffer(chunkX, chunkZ, block) {
@@ -103,8 +99,8 @@ class World extends CS336Object {
     }
 
     setRenderedChunks() {
-        let currChunkX = Math.floor(this.camera.position.x / Chunk.CHUNK_SIZE_X);
-        let currChunkZ = Math.floor(this.camera.position.z / Chunk.CHUNK_SIZE_Z);
+        let currChunkX = Math.floor(this.camera.position.x / CHUNK_SIZE_X);
+        let currChunkZ = Math.floor(this.camera.position.z / CHUNK_SIZE_Z);
 
         if (currChunkX == this.currentChunk.x && currChunkZ == this.currentChunk.z && this.renderedChunks != null) {
             return;
@@ -120,8 +116,8 @@ class World extends CS336Object {
         let z = this.currentChunk.z;
         let index = 0;
 
-        for (let i = Math.max(0, x - World.RENDER_DISTANCE); i < Math.min(x + World.RENDER_DISTANCE, World.WORLD_SIZE); ++i) {
-            for (let j = Math.max(0, z - World.RENDER_DISTANCE); j < Math.min(z + World.RENDER_DISTANCE, World.WORLD_SIZE); ++j) {
+        for (let i = Math.max(0, x - RENDER_DISTANCE); i < Math.min(x + RENDER_DISTANCE, WORLD_SIZE); ++i) {
+            for (let j = Math.max(0, z - RENDER_DISTANCE); j < Math.min(z + RENDER_DISTANCE, WORLD_SIZE); ++j) {
                 this.renderedChunks[index] = this.chunks[i][j];
                 index++;
             }
@@ -131,16 +127,16 @@ class World extends CS336Object {
     createChunks() {
 
         if (this.currentChunk == null) {
-            this.currentChunk = new Chunk(World.WORLD_SIZE / 2, World.WORLD_SIZE / 2, this);
+            this.currentChunk = new Chunk(WORLD_SIZE / 2, WORLD_SIZE / 2, this, PLAINS);
         }
 
         let x = this.currentChunk.x;
         let z = this.currentChunk.z;
 
-        for (let i = Math.max(0, x - World.RENDER_DISTANCE); i < Math.min(x + World.RENDER_DISTANCE, World.WORLD_SIZE); ++i) {
-            for (let j = Math.max(0, z - World.RENDER_DISTANCE); j < Math.min(z + World.RENDER_DISTANCE, World.WORLD_SIZE); ++j) {
+        for (let i = Math.max(0, x - RENDER_DISTANCE); i < Math.min(x + RENDER_DISTANCE, WORLD_SIZE); ++i) {
+            for (let j = Math.max(0, z - RENDER_DISTANCE); j < Math.min(z + RENDER_DISTANCE, WORLD_SIZE); ++j) {
                 if (this.chunks[i][j] == null) {
-                    this.chunks[i][j] = new Chunk(i, j, this);
+                    this.chunks[i][j] = new Chunk(i, j, this, PLAINS);
                 }
             }
         }
