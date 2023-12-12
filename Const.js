@@ -19,4 +19,4 @@ const OCTAVES = 3;
 
 const WORLD_SIZE = 100;
 const PLAYER_HEIGHT = 1.97;
-const RENDER_DISTANCE = 5;
+const RENDER_DISTANCE = 4;

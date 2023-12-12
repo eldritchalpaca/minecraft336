@@ -8,7 +8,7 @@ const PLAINS = {
     hasTrees : true,
     treeRate : 1000,
     lowestPoint : SEA_LEVEL,
-    highestPoint : SEA_LEVEL + 10
+    highestPoint : WORLD_HEIGHT - 1
 }
 
 const DESERT = {
@@ -18,7 +18,7 @@ const DESERT = {
     under_block : BlockType.SAND,
     hasTrees : false,
     lowestPoint : SEA_LEVEL,
-    highestPoint : SEA_LEVEL + 10
+    highestPoint : WORLD_HEIGHT - 1
 }
 
 const MOUNTAIN = {
@@ -49,16 +49,16 @@ const FOREST = {
     top_block : BlockType.GRASS,
     under_block : BlockType.DIRT,
     hasTrees : true,
-    treeRate : 100,
+    treeRate : 50,
     lowestPoint : SEA_LEVEL,
-    highestPoint : SEA_LEVEL + 10
+    highestPoint : WORLD_HEIGHT - 1
 }
 
 function randomBiome() {
     let biomes = [
         PLAINS,
         DESERT,
-        //MOUNTAIN,
+        MOUNTAIN,
         ISLANDS,
         FOREST
     ]

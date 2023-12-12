@@ -15,11 +15,19 @@ var lightPosition = new THREE.Vector3(-1, 1, -1);
 var model;
 
 var world;
+let seed = 0.9396259012900186
+//random
+world = new World();
 
-//world = new World();
+//world = new World(seed, PLAINS);
 
-//sick mountains
-world = new World(0.9396259012900186, ISLANDS);
+//world = new World(seed, DESERT);
+
+//world = new World(seed, MOUNTAIN);
+
+//world = new World(seed, ISLANDS);
+
+//world = new World(seed, FOREST);
 
 var bedrockImage = "./textures/bedrock64.png";
 var stoneImage = "./textures/stone64.png";
@@ -513,8 +521,8 @@ function draw() {
 let canvas;
 async function main() {
     canvas = document.getElementById("theCanvas");
-    canvas.height = window.innerHeight;
-    canvas.width = canvas.height * 1.5
+    // canvas.height = window.innerHeight;
+    // canvas.width = canvas.height * 1.5
     gl = getGraphicsContext("theCanvas");
 
     await loadTextures();

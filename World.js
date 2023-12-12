@@ -8,7 +8,7 @@ class World extends CS336Object {
 
         this.seed = seed;
 
-        biome = biome ? biome : PLAINS;
+        biome = biome ? biome : randomBiome();
         this.biome = biome;
 
         this.chunkRenderBuffer = new Map();
@@ -25,7 +25,7 @@ class World extends CS336Object {
 
         let cameraX = this.currentChunk.x * CHUNK_SIZE_X;
         let cameraZ = this.currentChunk.z * CHUNK_SIZE_Z;
-        let cameraY = this.currentChunk.getHighestY(0, 0) + PLAYER_HEIGHT + 5;
+        let cameraY = this.currentChunk.getHighestY(0, 0) + PLAYER_HEIGHT;
         
         //camera is set to center of world
         this.camera.setPosition(cameraX, cameraY, cameraZ);
@@ -141,7 +141,7 @@ class World extends CS336Object {
         for (let i = Math.max(0, x - RENDER_DISTANCE); i < Math.min(x + RENDER_DISTANCE, WORLD_SIZE); ++i) {
             for (let j = Math.max(0, z - RENDER_DISTANCE); j < Math.min(z + RENDER_DISTANCE, WORLD_SIZE); ++j) {
                 if (this.chunks[i][j] == null) {
-                    this.chunks[i][j] = new Chunk(i, j, this, randomBiome());
+                    this.chunks[i][j] = new Chunk(i, j, this, this.biome);
                 }
             }
         }
