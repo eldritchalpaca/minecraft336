@@ -7,12 +7,19 @@ var texCoordBuffer;
 var texCrosshairBuffer;
 var indexBuffer;
 var uvBuffer;
-var lightingShader;
-var colorShader;
+
+var mainShader;
 var crosshairShader;
+var shadowMapShader;
+var lightingShader;
+
 var textureHandles = [];
-var lightPosition = new THREE.Vector3(-1, 1, -1);
 var model;
+
+var OFFSCREEN_WIDTH;
+var OFFSCREEN_HEIGHT;
+var fbo;
+var lightPosition = new THREE.Vector4(-4.0, 10.0, -1.0, 1.0);
 
 var world = new World();
 
@@ -155,33 +162,38 @@ async function loadTextures() {
 // vertex shader
 const vshaderSource = `
 uniform mat4 transform;
+uniform mat4 lightViewProjection;
 attribute vec4 a_Position;
 attribute vec2 a_TexCoord;
-attribute vec4 uv;
+// attribute vec4 uv;
 varying vec2 fTexCoord;
 varying vec3 fTexVector;
-varying vec2 fragment_uv;
-varying float fragment_ao;
-varying float fragment_light;
+// varying vec2 fragment_uv;
+// varying float fragment_ao;
+// varying float fragment_light;
 varying float diffuse;
 
 varying vec3 fL;
 varying vec3 fN;
 const vec3 light_direction = normalize(vec3(-1.0, 1.0, -1.0));
+varying vec4 lightCoord;
 
 void main()
 {
   vec3 N = normalize(fN);
   vec3 L = normalize(fL);
-  fragment_uv = uv.xy;
-  fragment_ao = 0.3 + (1.0 - uv.z) * 0.7;
-  fragment_light = uv.w;
+//   fragment_uv = uv.xy;
+//   fragment_ao = 0.3 + (1.0 - uv.z) * 0.7;
+//   fragment_light = uv.w;
   diffuse = min(0.0, dot(N, light_direction));
+
+  lightCoord = lightViewProjection * a_Position;
 
   // pass through so the value gets interpolated
   fTexCoord = a_TexCoord;
-  fTexVector = a_Position.xyz / fragment_light;
+  fTexVector = a_Position.xyz;
   gl_Position = transform * a_Position;
+  lightCoord = lightCoord / lightCoord.w;
 }
 `;
 
@@ -195,32 +207,38 @@ uniform float m;
 
 varying vec3 fL;
 varying vec3 fN;
-varying vec2 fragment_uv;
-varying float fragment_ao;
-varying float fragment_light;
+// varying vec2 fragment_uv;
+// varying float fragment_ao;
+// varying float fragment_light;
 varying float diffuse;
+
+varying vec4 lightCoord;
+uniform sampler2D shadowMap;
 
 void main()
 {
+  float visibility = texture2D(shadowMap, lightCoord.xy).r;
+  visibility = (lightCoord.z > visibility + 0.005) ? 0.3 : 1.0;
+
   // sample from the texture at the interpolated texture coordinate,
   // and use the value directly as the surface color
   vec4 color = textureCube(sampler, fTexVector) + m;
   //vec4 color = vec4(1.0, 0.0, 0.0, 1.0);
 
-  vec3 N = normalize(fN);
-  vec3 L = normalize(fL);
-  float value = max(1.0, fragment_light);
-  vec4 light_color = vec4(value + 0.2);
-  vec4 ambient = vec4(value * 0.8 + 0.2);
-  vec4 specular = 0.0 * light_color; 
-  float shadow = 10.0;
-  vec4 light = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;
+//   vec3 N = normalize(fN);
+//   vec3 L = normalize(fL);
+//   float value = max(1.0, fragment_light);
+//   vec4 light_color = vec4(value + 0.2);
+//   vec4 ambient = vec4(value * 0.8 + 0.2);
+//   vec4 specular = 0.0 * light_color; 
+//   float shadow = 10.0;
+//   vec4 light = (ambient + (1.0 - shadow) * (diffuse + specular)) * color * visibility;
 
-  gl_FragColor = light, 1.0;
+  gl_FragColor = color;
 }
 `;
 
-// vertex shader
+// crosshair vertex shader
 const vcrosshairShaderSource = `
 attribute vec4 a_Position;
 void main()
@@ -229,7 +247,7 @@ void main()
 }
 `;
 
-// fragment shader
+// crosshair fragment shader
 const fcrosshairShaderSource = `
 precision mediump float;
 void main()
@@ -238,6 +256,206 @@ void main()
   gl_FragColor = color;
 }
 `;
+
+// shadowmap vertex shader
+const vshadowMapShaderSource = `
+uniform mat4 lightMVPMatrix;  // projection * view * model with view point at light
+attribute vec4 a_Position;
+void main()
+{
+  gl_Position = lightMVPMatrix * a_Position;
+}
+`;
+// shadowmap fragment shader
+const fshadowMapShaderSource = `
+precision mediump float;
+void main()
+{
+  //gl_FragColor = vec4(gl_FragCoord.z, 0.0, 0.0, 1.0);
+  const vec4 bitShift = vec4(1.0, 256.0, 256.0 * 256.0, 256.0 * 256.0 * 256.0);
+  const vec4 bitMask = vec4(1.0/256.0, 1.0/256.0, 1.0/256.0, 0.0);
+  vec4 rgbaDepth = fract(gl_FragCoord.z * bitShift);
+  gl_FragColor = rgbaDepth;
+}
+`;
+
+// lighting vertex shader
+const vLightingShaderSource = `
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+uniform mat3 normalMatrix;
+uniform vec4 lightPosition;
+uniform mat4 lightMVPMatrix;
+
+attribute vec4 a_Position;
+attribute vec3 a_Normal;
+
+varying vec3 fL;
+varying vec3 fN;
+varying vec3 fV;
+varying vec4 fClipCoordRelativeToLight;
+
+void main()
+{
+  // convert position to eye coords
+  vec4 positionEye = view * model * a_Position;
+
+  // convert light position to eye coords
+  vec4 lightEye = view * lightPosition;
+
+  // vector to light
+  fL = (lightEye - positionEye).xyz;
+
+  // transform normal vector into eye coords
+  fN = normalMatrix * a_Normal;
+
+  // vector from vertex position toward view point
+  fV = normalize(-(positionEye).xyz);
+
+  fClipCoordRelativeToLight = lightMVPMatrix * a_Position;
+
+  gl_Position = projection * view * model * a_Position;
+}
+`;
+
+// lighting fragment shader
+const fLightingShaderSource = `
+precision mediump float;
+
+uniform mat3 materialProperties;
+uniform mat3 lightProperties;
+uniform float shininess;
+uniform sampler2D sampler;
+uniform float textureSize;
+
+varying vec3 fL;
+varying vec3 fN;
+varying vec3 fV;
+varying vec4 fClipCoordRelativeToLight;
+
+float unpackDepth(const in vec4 rgbaDepth) {
+    const vec4 bitShift = vec4(1.0, 1.0/256.0, 1.0/(256.0*256.0), 1.0/(256.0*256.0*256.0));
+    float depth = dot(rgbaDepth, bitShift);
+    return depth;
+}
+
+void main()
+{
+  vec3 lightCoord = fClipCoordRelativeToLight.xyz / fClipCoordRelativeToLight.w;
+  float currentDepth = lightCoord.z / 2.0 + 0.5;
+  vec2 st = lightCoord.xy / 2.0 + 0.5;
+
+  #if 0
+    vec4 rgbaDepth = st;
+    float storedDepth = unpackDepth(rgbaDepth);
+    //float storedDepth = rgbaDepth.r;
+    float shadowFactor = 1.0;
+
+    //if (storedDepth < currentDepth)
+    if (storedDepth < currentDepth - 0.005)
+    {
+        shadowFactor = 0.6;
+    }
+  #endif
+
+  #if 1
+    float shadowed = 0.0;
+    float increment = 1.0;
+    vec4 rgbaDepth = texture2D(sampler, st);
+    float storedDepth = unpackDepth(rgbaDepth);
+    shadowed += (storedDepth < currentDepth - 0.005) ? 0.0 : 1.0;
+    rgbaDepth = texture2D(sampler, st + vec2(increment, 0.0));
+    storedDepth = unpackDepth(rgbaDepth);
+    shadowed += (storedDepth < currentDepth - 0.005) ? 0.0 : 1.0;
+    rgbaDepth = texture2D(sampler, st + vec2(0.0, increment));
+    storedDepth = unpackDepth(rgbaDepth);
+    shadowed += (storedDepth < currentDepth - 0.005) ? 0.0 : 1.0;
+    rgbaDepth = texture2D(sampler, st + vec2(increment, increment));
+    storedDepth = unpackDepth(rgbaDepth);
+    shadowed += (storedDepth < currentDepth - 0.005) ? 0.0 : 1.0;
+    shadowed *= 0.25;
+    float shadowFactor = shadowed * 0.4 + 0.6;
+  #endif
+
+  vec3 N = normalize(fN);
+  vec3 L = normalize(fL);
+  vec3 V = normalize(fV);
+  vec3 R = reflect(-L, N);
+
+  vec4 ambientSurface = vec4(materialProperties[0], 1.0);
+  vec4 diffuseSurface = vec4(materialProperties[1], 1.0);
+  vec4 specularSurface = vec4(materialProperties[2], 1.0);
+  vec4 ambientLight = vec4(lightProperties[0], 1.0);
+  vec4 diffuseLight = vec4(lightProperties[1], 1.0);
+  vec4 specularLight = vec4(lightProperties[2], 1.0);
+
+  mat3 products = matrixCompMult(lightProperties, materialProperties);
+  vec4 ambientColor = vec4(products[0], 1.0);
+  vec4 diffuseColor = vec4(products[1], 1.0);
+  vec4 specularColor = vec4(products[2], 1.0);
+
+  float diffuseFactor = max(0.0, dot(L, N));
+  float specularFactor = pow(max(0.0, dot(V, R)), shininess);
+  gl_FragColor = specularColor * specularFactor + diffuseColor * diffuseFactor + ambientColor;
+
+  if (dot(L, N) > 0.0)
+  {
+    gl_FragColor *= shadowFactor;
+  }
+
+  gl_FragColor.a = 1.0;
+}
+`;
+
+function initFramebufferObject(gl) {
+    var framebuffer, texture, depthBuffer;
+    var error = function() {
+      if (framebuffer) gl.deleteFramebuffer(framebuffer);
+      if (texture) gl.deleteTexture(texture);
+      if (depthBuffer) gl.deleteRenderbuffer(depthBuffer);
+      return null;
+    }
+
+    framebuffer = gl.createFramebuffer();
+    if (!framebuffer) {
+      console.log('Failed to create frame buffer object');
+      return error();
+    }
+  
+    texture = gl.createTexture();
+    if (!texture) {
+      console.log('Failed to create texture object');
+      return error();
+    }
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, OFFSCREEN_WIDTH, OFFSCREEN_HEIGHT, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    framebuffer.texture = texture;
+
+    depthBuffer = gl.createRenderbuffer();
+    if (!depthBuffer) {
+      console.log('Failed to create renderbuffer object');
+      return error();
+    }
+    gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, OFFSCREEN_WIDTH, OFFSCREEN_HEIGHT);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuffer);
+    
+    var e = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    if (gl.FRAMEBUFFER_COMPLETE !== e) {
+      console.log('Frame buffer object is incomplete: ' + e.toString());
+      return error();
+    }
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.bindTexture(gl.TEXTURE_2D, null);
+  gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+
+  return framebuffer;
+}
 
 //location of crosshair
 var numPoints = 6;
@@ -249,6 +467,19 @@ var crosshairVertices = new Float32Array([
     0.01, 0.015,
     -0.01, 0.015
 ]);
+
+var lightPropElements = new Float32Array([
+    0.2, 0.2, 0.2,
+    0.7, 0.7, 0.7,
+    0.7, 0.7, 0.7
+]);
+
+var matPropElements = new Float32Array([
+    1, 1, 1,
+    1, 1, 1,
+    1, 1, 1
+]);
+var shininess = 20.0;
 
 //translate keypress events to strings
 //from http://javascript.info/tutorial/keyboard-events
@@ -412,27 +643,119 @@ function getSideFacingCamera(block) {
     }
 }
 
-function drawCube(matrix, texIndex, isHighlighted) {
-    // bind the shader
-    gl.useProgram(colorShader);
+function drawModelOffscreen(model, matrix, vBuffer, projection, view)
+{
+  gl.useProgram(shadowMapShader);
+  var positionIndex = gl.getAttribLocation(shadowMapShader, 'a_Position');
+  if (positionIndex < 0) {
+    console.log('Failed to get the storage location of a_Position');
+    return;
+  }
+  gl.enableVertexAttribArray(positionIndex);
+  gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+  gl.vertexAttribPointer(positionIndex, 3, gl.FLOAT, false, 0, 0);
+  gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
-    var positionIndex = gl.getAttribLocation(colorShader, 'a_Position');
+  loc = gl.getUniformLocation(shadowMapShader, "lightMVPMatrix");
+  var lightmvp = new THREE.Matrix4().multiply(projection).multiply(view).multiply(matrix);
+  gl.uniformMatrix4fv(loc, false, lightmvp.elements);
+  gl.drawArrays(gl.TRIANGLES, 0, model.numVertices);
+  gl.disableVertexAttribArray(positionIndex);
+}
+
+function drawModel(model, matrix, vBuffer, nBuffer, projection, view)
+{
+  gl.useProgram(lightingShader);
+  var positionIndex = gl.getAttribLocation(lightingShader, 'a_Position');
+  if (positionIndex < 0) {
+    console.log('Failed to get the storage location of a_Position');
+    return;
+  }
+  var normalIndex = gl.getAttribLocation(lightingShader, 'a_Normal');
+  if (normalIndex < 0) {
+      console.log('Failed to get the storage location of a_Normal');
+      return;
+    }
+  gl.enableVertexAttribArray(positionIndex);
+  gl.enableVertexAttribArray(normalIndex);
+  gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+  gl.vertexAttribPointer(positionIndex, 3, gl.FLOAT, false, 0, 0);
+  gl.bindBuffer(gl.ARRAY_BUFFER, nBuffer);
+  gl.vertexAttribPointer(normalIndex, 3, gl.FLOAT, false, 0, 0);
+  gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+  var loc = gl.getUniformLocation(lightingShader, "model");
+  gl.uniformMatrix4fv(loc, false, matrix.elements);
+  loc = gl.getUniformLocation(lightingShader, "view");
+  gl.uniformMatrix4fv(loc, false, view.elements);
+  loc = gl.getUniformLocation(lightingShader, "projection");
+  gl.uniformMatrix4fv(loc, false, projection.elements);
+  loc = gl.getUniformLocation(lightingShader, "normalMatrix");
+  gl.uniformMatrix3fv(loc, false, makeNormalMatrixElements(matrix, view));
+
+  loc = gl.getUniformLocation(lightingShader, "lightPosition");
+  var lp = lightPosition	;
+  gl.uniform4f(loc, lp.x, lp.y, lp.z, lp.w);
+
+  loc = gl.getUniformLocation(lightingShader, "lightMVPMatrix");
+  var lightmvp = new THREE.Matrix4().multiply(projection).multiply(view).multiply(matrix);
+  gl.uniformMatrix4fv(loc, false, lightmvp.elements);
+
+  loc = gl.getUniformLocation(lightingShader, "lightProperties");
+  gl.uniformMatrix3fv(loc, false, lightPropElements);
+  loc = gl.getUniformLocation(lightingShader, "materialProperties");
+  gl.uniformMatrix3fv(loc, false, matPropElements);
+  loc = gl.getUniformLocation(lightingShader, "shininess");
+  gl.uniform1f(loc, shininess);
+  gl.uniform1f(loc, OFFSCREEN_WIDTH);
+
+  gl.drawArrays(gl.TRIANGLES, 0, model.numVertices);
+
+  gl.disableVertexAttribArray(positionIndex);
+  gl.disableVertexAttribArray(normalIndex);
+
+}
+
+function drawCube(matrix, texIndex, isHighlighted) {
+    var projection = world.camera.getProjection();
+    var view = world.camera.getView();
+    var modelMatrix = new THREE.Matrix4();
+    modelMatrix.elements = matrix.elements;
+    var transform = new THREE.Matrix4().multiply(projection).multiply(view).multiply(modelMatrix);
+    // gl.bindFramebuffer(gl.FRAMEBUFFER, fbo );
+    gl.viewport(0, 0, OFFSCREEN_WIDTH, OFFSCREEN_HEIGHT);[]
+    gl.clearColor(1.0, 1.0, 1.0, 1.0);
+    gl.enable(gl.DEPTH_TEST);
+
+    // drawModelOffscreen(model, modelMatrix, vertexBuffer, projection, view);
+    // gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    // gl.viewport(0, 0, 600, 600);
+    // gl.clearColor(0.0, 0.0, 0.4, 1.0);
+    // gl.enable(gl.DEPTH_TEST);
+    // gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    // drawModel(model, modelMatrix, vertexBuffer, vertexNormalBuffer, projection, view);
+
+    // bind the shader
+    gl.useProgram(mainShader);
+
+    var positionIndex = gl.getAttribLocation(mainShader, 'a_Position');
     if (positionIndex < 0) {
         console.log('Failed to get the storage location of a_Position');
         return;
     }
 
-    var texCoordIndex = gl.getAttribLocation(colorShader, 'a_TexCoord');
+    var texCoordIndex = gl.getAttribLocation(mainShader, 'a_TexCoord');
     if (texCoordIndex < 0) {
         console.log('Failed to get the storage location of a_TexCoord');
         return;
     }
 
-    var uvIndex = gl.getAttribLocation(colorShader, 'uv');
-    if (uvIndex < 0) {
-        console.log('Failed to get the storage location of uv');
-        return;
-    }
+    // var uvIndex = gl.getAttribLocation(mainShader, 'uv');
+    // if (uvIndex < 0) {
+    //     console.log('Failed to get the storage location of uv');
+    //     return;
+    // }
 
     let m = 0.1;
 
@@ -443,15 +766,15 @@ function drawCube(matrix, texIndex, isHighlighted) {
     // "enable" the a_position attribute
     gl.enableVertexAttribArray(positionIndex);
     gl.enableVertexAttribArray(texCoordIndex);
-    gl.enableVertexAttribArray(uvIndex);
+    // gl.enableVertexAttribArray(uvIndex);
 
     // bind buffers for points
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
     gl.vertexAttribPointer(positionIndex, 3, gl.FLOAT, false, 0, 0);
     gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
     gl.vertexAttribPointer(texCoordIndex, 2, gl.FLOAT, false, 0, 0);
-    gl.bindBuffer(gl.ARRAY_BUFFER, uvBuffer);
-    gl.vertexAttribPointer(uvIndex, 2, gl.FLOAT, false, 0, 0);
+    // gl.bindBuffer(gl.ARRAY_BUFFER, uvBuffer);
+    // gl.vertexAttribPointer(uvIndex, 3, gl.FLOAT, false, 0, 0);
 
     var projection = world.camera.getProjection();
     var view = world.camera.getView();
@@ -459,10 +782,10 @@ function drawCube(matrix, texIndex, isHighlighted) {
     modelMatrix.elements = matrix.elements;
     var transform = new THREE.Matrix4().multiply(projection).multiply(view).multiply(modelMatrix);
 
-    var loc = gl.getUniformLocation(colorShader, "transform");
+    var loc = gl.getUniformLocation(mainShader, "transform");
     gl.uniformMatrix4fv(loc, false, transform.elements);
 
-    loc = gl.getUniformLocation(colorShader, "sampler");
+    loc = gl.getUniformLocation(mainShader, "sampler");
 
     var textureUnit = texIndex;
     gl.activeTexture(gl.TEXTURE0 + textureUnit);
@@ -471,14 +794,14 @@ function drawCube(matrix, texIndex, isHighlighted) {
     // sampler value in shader is set to index for texture unit
     gl.uniform1i(loc, textureUnit);
 
-    loc = gl.getUniformLocation(colorShader, "m");
+    loc = gl.getUniformLocation(mainShader, "m");
     gl.uniform1f(loc, m);
 
     gl.drawArrays(gl.TRIANGLES, 0, model.numVertices);
 
     gl.disableVertexAttribArray(positionIndex);
     gl.disableVertexAttribArray(texCoordIndex);
-    gl.disableVertexAttribArray(uvIndex);
+    // gl.disableVertexAttribArray(uvIndex);
     gl.useProgram(null);
     gl.bindTexture(gl.TEXTURE_CUBE_MAP, null);
 }
@@ -490,13 +813,11 @@ function draw() {
 
     gl.useProgram(crosshairShader);
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexCrosshairBuffer);
-
     var positionIndex = gl.getAttribLocation(crosshairShader, 'a_Position');
     if (positionIndex < 0) {
         console.log('Failed to get the storage location of a_Position');
         return;
     }
-
     gl.enableVertexAttribArray(positionIndex);
     gl.vertexAttribPointer(positionIndex, 2, gl.FLOAT, false, 0, 0);
 
@@ -510,6 +831,11 @@ async function main() {
     canvas = document.getElementById("theCanvas");
     gl = getGraphicsContext("theCanvas");
 
+    OFFSCREEN_HEIGHT = canvas.clientHeight;
+    OFFSCREEN_WIDTH = canvas.clientWidth;
+
+    fbo = initFramebufferObject(gl);
+
     await loadTextures();
 
     model = getModelData(new THREE.BoxGeometry());
@@ -520,14 +846,16 @@ async function main() {
     gl.enable(gl.CULL_FACE);
     gl.cullFace(gl.BACK);
 
-    // load and compile the shader pairl
-    colorShader = createShaderProgram(gl, vshaderSource, fshaderSource);
+    // load and compile the shader pair
+    mainShader = createShaderProgram(gl, vshaderSource, fshaderSource);
     crosshairShader = createShaderProgram(gl, vcrosshairShaderSource, fcrosshairShaderSource);
+    shadowMapShader = createShaderProgram(gl, vshadowMapShaderSource, fshadowMapShaderSource);
+    lightingShader = createShaderProgram(gl, vLightingShaderSource, fLightingShaderSource);
 
     // load the vertex data into GPU memory
     vertexBuffer = createAndLoadBuffer(model.vertices);
     texCoordBuffer = createAndLoadBuffer(model.texCoords);
-    uvBuffer = createAndLoadBuffer(model.uvs);
+    // uvBuffer = createAndLoadBuffer(model.uv);
 
     vertexCrosshairBuffer = createAndLoadBuffer(crosshairVertices);
 
