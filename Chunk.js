@@ -60,8 +60,9 @@ class Chunk extends CS336Object {
                     // y = y * scale;
                 }
 
-                y = clamp(y, -1, 1);
-                y = changeScale(y, -1, 1, 1, WORLD_HEIGHT - 1);
+                y = clamp(y, -0.75, 1);
+                //y = changeScale(y, -1, 1, 1, WORLD_HEIGHT - 1);
+                y = changeScale(y, -0.75, 1, this.biome.lowestPoint, this.biome.highestPoint);
 
                 y = Math.round(y);
                 this.height[i][j] = y;
@@ -116,8 +117,8 @@ class Chunk extends CS336Object {
 
 
                     //add trees
-                    if (block.blockType != BlockType.WATER && getRandomInteger(1, 30) == 10) {
-                       // this.buildTree(x, y + 1, z);
+                    if (this.biome.hasTrees && block.blockType != BlockType.WATER && getRandomInteger(1, this.biome.treeRate) == 1) {
+                       this.buildTree(x, y + 1, z);
                     }
                 }
             }
@@ -266,10 +267,10 @@ class Chunk extends CS336Object {
 
                 if (chunk != null) {
 
-                    if (blocks[xIndex][y + 3][zIndex] == null) {
+                    if (chunk.blocks[xIndex][y + 3][zIndex] == null) {
                         block1.setChunk(chunk);
                     }
-                    if (blocks[xIndex][y + 4][zIndex] == null) {
+                    if (chunk.blocks[xIndex][y + 4][zIndex] == null) {
                         block2.setChunk(chunk);
                     }
                 }
@@ -294,10 +295,10 @@ class Chunk extends CS336Object {
 
                 if (chunk != null) {
 
-                    if (blocks[xIndex][y + 5][zIndex] == null) {
+                    if (chunk.blocks[xIndex][y + 5][zIndex] == null) {
                         block1.setChunk(chunk);
                     }
-                    if (blocks[xIndex][y + 6][zIndex] == null) {
+                    if (chunk.blocks[xIndex][y + 6][zIndex] == null) {
                         block2.setChunk(chunk);
                     }
                 }

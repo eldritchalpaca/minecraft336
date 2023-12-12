@@ -14,7 +14,20 @@ var textureHandles = [];
 var lightPosition = new THREE.Vector3(-1, 1, -1);
 var model;
 
-var world = new World();
+var world;
+let seed = 0.9396259012900186
+//random
+world = new World();
+
+//world = new World(seed, PLAINS);
+
+//world = new World(seed, DESERT);
+
+//world = new World(seed, MOUNTAIN);
+
+//world = new World(seed, ISLANDS);
+
+//world = new World(seed, FOREST);
 
 var bedrockImage = "./textures/bedrock64.png";
 var stoneImage = "./textures/stone64.png";
@@ -282,7 +295,7 @@ async function handleKeyPress(event) {
 function handleMouseClick(event) {
     console.log(event);
 
-    if (event.button == 0 && world.highlightedBlock != null) {
+    if (event.button == 2 && world.highlightedBlock != null) {
         world.highlightedBlock.destroy();
         world.highlightedBlock = null;
     }
@@ -508,6 +521,8 @@ function draw() {
 let canvas;
 async function main() {
     canvas = document.getElementById("theCanvas");
+    // canvas.height = window.innerHeight;
+    // canvas.width = canvas.height * 1.5
     gl = getGraphicsContext("theCanvas");
 
     await loadTextures();

@@ -1,10 +1,15 @@
 class World extends CS336Object {
 
-    constructor(seed) {
+    constructor(seed, biome) {
         super();
 
         seed = seed ? seed : Math.random();
         noise.seed(seed);
+
+        this.seed = seed;
+
+        biome = biome ? biome : randomBiome();
+        this.biome = biome;
 
         this.chunkRenderBuffer = new Map();
 
@@ -14,13 +19,13 @@ class World extends CS336Object {
         
         this.createChunks();
 
-        this.camera = new Camera(30, 1.5);
+        this.camera = new Camera(70, 1.5);
 
         this.currentChunk = this.chunks[WORLD_SIZE / 2][WORLD_SIZE / 2];
 
         let cameraX = this.currentChunk.x * CHUNK_SIZE_X;
         let cameraZ = this.currentChunk.z * CHUNK_SIZE_Z;
-        let cameraY = this.currentChunk.getHighestY(0, 0) + PLAYER_HEIGHT + 5;
+        let cameraY = this.currentChunk.getHighestY(0, 0) + PLAYER_HEIGHT;
         
         //camera is set to center of world
         this.camera.setPosition(cameraX, cameraY, cameraZ);
@@ -127,7 +132,7 @@ class World extends CS336Object {
     createChunks() {
 
         if (this.currentChunk == null) {
-            this.currentChunk = new Chunk(WORLD_SIZE / 2, WORLD_SIZE / 2, this, PLAINS);
+            this.currentChunk = new Chunk(WORLD_SIZE / 2, WORLD_SIZE / 2, this, this.biome);
         }
 
         let x = this.currentChunk.x;
@@ -136,7 +141,7 @@ class World extends CS336Object {
         for (let i = Math.max(0, x - RENDER_DISTANCE); i < Math.min(x + RENDER_DISTANCE, WORLD_SIZE); ++i) {
             for (let j = Math.max(0, z - RENDER_DISTANCE); j < Math.min(z + RENDER_DISTANCE, WORLD_SIZE); ++j) {
                 if (this.chunks[i][j] == null) {
-                    this.chunks[i][j] = new Chunk(i, j, this, PLAINS);
+                    this.chunks[i][j] = new Chunk(i, j, this, this.biome);
                 }
             }
         }
