@@ -167,70 +167,50 @@ async function loadTextures() {
 
 // vertex shader
 const vshaderSource = `
-uniform mat4 transform;
-attribute vec4 a_Position;
-attribute vec2 a_TexCoord;
-attribute vec4 uv;
-varying vec2 fTexCoord;
-varying vec3 fTexVector;
-varying vec2 fragment_uv;
-varying float fragment_ao;
-varying float fragment_light;
-varying float diffuse;
+  uniform mat4 transform;
+  uniform vec3 lightPosition;
+  attribute vec4 a_Position;
+  attribute vec2 a_TexCoord;
+  attribute vec4 uv;
+  varying vec2 fTexCoord;
+  varying vec3 fTexVector;
+  varying vec3 fL;
+  varying vec3 fN;
 
-varying vec3 fL;
-varying vec3 fN;
-const vec3 light_direction = normalize(vec3(-1.0, 1.0, -1.0));
-
-void main()
-{
-  vec3 N = normalize(fN);
-  vec3 L = normalize(fL);
-  fragment_uv = uv.xy;
-  fragment_ao = 0.3 + (1.0 - uv.z) * 0.7;
-  fragment_light = uv.w;
-  diffuse = min(0.0, dot(N, light_direction));
-
-  // pass through so the value gets interpolated
-  fTexCoord = a_TexCoord;
-  fTexVector = a_Position.xyz / fragment_light;
-  gl_Position = transform * a_Position;
-}
+  void main() {
+    vec3 N = normalize(mat3(transform) * uv.xyz);
+    vec3 L = normalize(lightPosition - a_Position.xyz);
+    fTexCoord = a_TexCoord;
+    fTexVector = a_Position.xyz;
+    fL = L;
+    fN = N;
+    gl_Position = transform * a_Position;
+  }
 `;
 
 // fragment shader
 const fshaderSource = `
-precision mediump float;
-uniform samplerCube sampler;
-varying vec2 fTexCoord;
-varying vec3 fTexVector;
-uniform float m;
+  precision mediump float;
+  uniform samplerCube sampler;
+  varying vec2 fTexCoord;
+  varying vec3 fTexVector;
+  varying vec3 fL;
+  varying vec3 fN;
+  
 
-varying vec3 fL;
-varying vec3 fN;
-varying vec2 fragment_uv;
-varying float fragment_ao;
-varying float fragment_light;
-varying float diffuse;
+  void main() {
+    vec4 color = textureCube(sampler, fTexVector) + m;
 
-void main()
-{
-  // sample from the texture at the interpolated texture coordinate,
-  // and use the value directly as the surface color
-  vec4 color = textureCube(sampler, fTexVector) + m;
-  //vec4 color = vec4(1.0, 0.0, 0.0, 1.0);
-
-  vec3 N = normalize(fN);
-  vec3 L = normalize(fL);
-  float value = max(1.0, fragment_light);
-  vec4 light_color = vec4(value + 0.2);
-  vec4 ambient = vec4(value * 0.8 + 0.2);
-  vec4 specular = 0.0 * light_color; 
-  float shadow = 10.0;
-  vec4 light = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;
-
-  gl_FragColor = light, 1.0;
-}
+    vec3 N = normalize(fN);
+    vec3 L = normalize(fL);
+    float diffuse = max(0.0, dot(N, L));
+    
+    vec3 ambientColor = vec3(0.2, 0.2, 0.2);
+    vec3 diffuseColor = vec3(0.8, 0.8, 0.8);
+    vec3 finalColor = ambientColor + diffuse * diffuseColor;
+    
+    gl_FragColor = vec4(finalColor * color.rgb, color.a);
+  }
 `;
 
 // vertex shader
@@ -474,6 +454,9 @@ function drawCube(matrix, texIndex, isHighlighted) {
 
     var loc = gl.getUniformLocation(colorShader, "transform");
     gl.uniformMatrix4fv(loc, false, transform.elements);
+
+    loc = gl.getUniformLocation(colorShader, "lightPosition");
+    gl.uniform3f(loc, lightPosition.x, lightPosition.y, lightPosition.z);
 
     loc = gl.getUniformLocation(colorShader, "sampler");
 
