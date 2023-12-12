@@ -196,7 +196,6 @@ void main()
   lightCoord = lightCoord / lightCoord.w;
 }
 `;
-
 // fragment shader
 const fshaderSource = `
 precision mediump float;
@@ -246,7 +245,6 @@ void main()
   gl_Position = a_Position;
 }
 `;
-
 // crosshair fragment shader
 const fcrosshairShaderSource = `
 precision mediump float;
@@ -281,15 +279,18 @@ void main()
 
 // lighting vertex shader
 const vLightingShaderSource = `
+precision mediump float;
+
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+uniform mat4 lightMVPMatrix;
 uniform mat3 normalMatrix;
 uniform vec4 lightPosition;
-uniform mat4 lightMVPMatrix;
 
 attribute vec4 a_Position;
 attribute vec3 a_Normal;
+//attribute vec2 a_TexCoord;
 
 varying vec3 fL;
 varying vec3 fN;
@@ -307,7 +308,7 @@ void main()
   // vector to light
   fL = (lightEye - positionEye).xyz;
 
-  // transform normal vector into eye coords
+  // transform normal matrix into eye coords
   fN = normalMatrix * a_Normal;
 
   // vector from vertex position toward view point
@@ -318,7 +319,6 @@ void main()
   gl_Position = projection * view * model * a_Position;
 }
 `;
-
 // lighting fragment shader
 const fLightingShaderSource = `
 precision mediump float;
@@ -332,51 +332,52 @@ uniform float textureSize;
 varying vec3 fL;
 varying vec3 fN;
 varying vec3 fV;
+varying vec2 fTexCoord;
 varying vec4 fClipCoordRelativeToLight;
 
 float unpackDepth(const in vec4 rgbaDepth) {
-    const vec4 bitShift = vec4(1.0, 1.0/256.0, 1.0/(256.0*256.0), 1.0/(256.0*256.0*256.0));
-    float depth = dot(rgbaDepth, bitShift);
-    return depth;
+  const vec4 bitShift = vec4(1.0, 1.0/256.0, 1.0/(256.0*256.0), 1.0/(256.0*256.0*256.0));
+  float depth = dot(rgbaDepth, bitShift); // Use dot() since the calculations is same
+  return depth;
 }
-
 void main()
 {
   vec3 lightCoord = fClipCoordRelativeToLight.xyz / fClipCoordRelativeToLight.w;
   float currentDepth = lightCoord.z / 2.0 + 0.5;
   vec2 st = lightCoord.xy / 2.0 + 0.5;
 
-  #if 0
-    vec4 rgbaDepth = st;
-    float storedDepth = unpackDepth(rgbaDepth);
-    //float storedDepth = rgbaDepth.r;
-    float shadowFactor = 1.0;
+#if 0
+  vec4 rgbaDepth = texture2D(sampler, st);
+  float storedDepth = unpackDepth(rgbaDepth);
+  //float storedDepth = rgbaDepth.r;
+  float shadowFactor = 1.0;
 
-    //if (storedDepth < currentDepth)
-    if (storedDepth < currentDepth - 0.005)
-    {
-        shadowFactor = 0.6;
-    }
-  #endif
+  //if (storedDepth < currentDepth)
+  if (storedDepth < currentDepth - 0.005)
+  {
+    shadowFactor = 0.6;
+  }
+#endif
 
-  #if 1
-    float shadowed = 0.0;
-    float increment = 1.0;
-    vec4 rgbaDepth = texture2D(sampler, st);
-    float storedDepth = unpackDepth(rgbaDepth);
-    shadowed += (storedDepth < currentDepth - 0.005) ? 0.0 : 1.0;
-    rgbaDepth = texture2D(sampler, st + vec2(increment, 0.0));
-    storedDepth = unpackDepth(rgbaDepth);
-    shadowed += (storedDepth < currentDepth - 0.005) ? 0.0 : 1.0;
-    rgbaDepth = texture2D(sampler, st + vec2(0.0, increment));
-    storedDepth = unpackDepth(rgbaDepth);
-    shadowed += (storedDepth < currentDepth - 0.005) ? 0.0 : 1.0;
-    rgbaDepth = texture2D(sampler, st + vec2(increment, increment));
-    storedDepth = unpackDepth(rgbaDepth);
-    shadowed += (storedDepth < currentDepth - 0.005) ? 0.0 : 1.0;
-    shadowed *= 0.25;
-    float shadowFactor = shadowed * 0.4 + 0.6;
-  #endif
+#if 1
+  float shadowed = 0.0;
+  float increment = 1.0 / textureSize;
+  vec4 rgbaDepth = texture2D(sampler, st);
+  float storedDepth = unpackDepth(rgbaDepth);
+  shadowed += (storedDepth < currentDepth - 0.005) ? 0.0 : 1.0;
+  rgbaDepth = texture2D(sampler, st + vec2(increment, 0.0));
+  storedDepth = unpackDepth(rgbaDepth);
+  shadowed += (storedDepth < currentDepth - 0.005) ? 0.0 : 1.0;
+  rgbaDepth = texture2D(sampler, st + vec2(0.0, increment));
+  storedDepth = unpackDepth(rgbaDepth);
+  shadowed += (storedDepth < currentDepth - 0.005) ? 0.0 : 1.0;
+  rgbaDepth = texture2D(sampler, st + vec2(increment, increment));
+  storedDepth = unpackDepth(rgbaDepth);
+  shadowed += (storedDepth < currentDepth - 0.005) ? 0.0 : 1.0;
+  shadowed *= 0.25;
+
+  float shadowFactor = shadowed * 0.4 + 0.6;
+#endif
 
   vec3 N = normalize(fN);
   vec3 L = normalize(fL);
@@ -390,20 +391,18 @@ void main()
   vec4 diffuseLight = vec4(lightProperties[1], 1.0);
   vec4 specularLight = vec4(lightProperties[2], 1.0);
 
-  mat3 products = matrixCompMult(lightProperties, materialProperties);
-  vec4 ambientColor = vec4(products[0], 1.0);
-  vec4 diffuseColor = vec4(products[1], 1.0);
-  vec4 specularColor = vec4(products[2], 1.0);
-
   float diffuseFactor = max(0.0, dot(L, N));
   float specularFactor = pow(max(0.0, dot(V, R)), shininess);
-  gl_FragColor = specularColor * specularFactor + diffuseColor * diffuseFactor + ambientColor;
 
+  vec4 ambient = ambientLight * ambientSurface;
+  vec4 diffuse = diffuseFactor * diffuseLight * diffuseSurface;
+  vec4 specular = specularFactor * specularLight * specularSurface;
+  gl_FragColor = (ambient + diffuse + specular);
+  
   if (dot(L, N) > 0.0)
   {
     gl_FragColor *= shadowFactor;
   }
-
   gl_FragColor.a = 1.0;
 }
 `;
@@ -422,12 +421,12 @@ function initFramebufferObject(gl) {
       console.log('Failed to create frame buffer object');
       return error();
     }
-  
     texture = gl.createTexture();
     if (!texture) {
       console.log('Failed to create texture object');
       return error();
     }
+
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, OFFSCREEN_WIDTH, OFFSCREEN_HEIGHT, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -467,13 +466,11 @@ var crosshairVertices = new Float32Array([
     0.01, 0.015,
     -0.01, 0.015
 ]);
-
 var lightPropElements = new Float32Array([
     0.2, 0.2, 0.2,
     0.7, 0.7, 0.7,
     0.7, 0.7, 0.7
 ]);
-
 var matPropElements = new Float32Array([
     1, 1, 1,
     1, 1, 1,
@@ -663,79 +660,7 @@ function drawModelOffscreen(model, matrix, vBuffer, projection, view)
   gl.disableVertexAttribArray(positionIndex);
 }
 
-function drawModel(model, matrix, vBuffer, nBuffer, projection, view)
-{
-  gl.useProgram(lightingShader);
-  var positionIndex = gl.getAttribLocation(lightingShader, 'a_Position');
-  if (positionIndex < 0) {
-    console.log('Failed to get the storage location of a_Position');
-    return;
-  }
-  var normalIndex = gl.getAttribLocation(lightingShader, 'a_Normal');
-  if (normalIndex < 0) {
-      console.log('Failed to get the storage location of a_Normal');
-      return;
-    }
-  gl.enableVertexAttribArray(positionIndex);
-  gl.enableVertexAttribArray(normalIndex);
-  gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
-  gl.vertexAttribPointer(positionIndex, 3, gl.FLOAT, false, 0, 0);
-  gl.bindBuffer(gl.ARRAY_BUFFER, nBuffer);
-  gl.vertexAttribPointer(normalIndex, 3, gl.FLOAT, false, 0, 0);
-  gl.bindBuffer(gl.ARRAY_BUFFER, null);
-
-  var loc = gl.getUniformLocation(lightingShader, "model");
-  gl.uniformMatrix4fv(loc, false, matrix.elements);
-  loc = gl.getUniformLocation(lightingShader, "view");
-  gl.uniformMatrix4fv(loc, false, view.elements);
-  loc = gl.getUniformLocation(lightingShader, "projection");
-  gl.uniformMatrix4fv(loc, false, projection.elements);
-  loc = gl.getUniformLocation(lightingShader, "normalMatrix");
-  gl.uniformMatrix3fv(loc, false, makeNormalMatrixElements(matrix, view));
-
-  loc = gl.getUniformLocation(lightingShader, "lightPosition");
-  var lp = lightPosition	;
-  gl.uniform4f(loc, lp.x, lp.y, lp.z, lp.w);
-
-  loc = gl.getUniformLocation(lightingShader, "lightMVPMatrix");
-  var lightmvp = new THREE.Matrix4().multiply(projection).multiply(view).multiply(matrix);
-  gl.uniformMatrix4fv(loc, false, lightmvp.elements);
-
-  loc = gl.getUniformLocation(lightingShader, "lightProperties");
-  gl.uniformMatrix3fv(loc, false, lightPropElements);
-  loc = gl.getUniformLocation(lightingShader, "materialProperties");
-  gl.uniformMatrix3fv(loc, false, matPropElements);
-  loc = gl.getUniformLocation(lightingShader, "shininess");
-  gl.uniform1f(loc, shininess);
-  gl.uniform1f(loc, OFFSCREEN_WIDTH);
-
-  gl.drawArrays(gl.TRIANGLES, 0, model.numVertices);
-
-  gl.disableVertexAttribArray(positionIndex);
-  gl.disableVertexAttribArray(normalIndex);
-
-}
-
 function drawCube(matrix, texIndex, isHighlighted) {
-    var projection = world.camera.getProjection();
-    var view = world.camera.getView();
-    var modelMatrix = new THREE.Matrix4();
-    modelMatrix.elements = matrix.elements;
-    var transform = new THREE.Matrix4().multiply(projection).multiply(view).multiply(modelMatrix);
-    // gl.bindFramebuffer(gl.FRAMEBUFFER, fbo );
-    gl.viewport(0, 0, OFFSCREEN_WIDTH, OFFSCREEN_HEIGHT);[]
-    gl.clearColor(1.0, 1.0, 1.0, 1.0);
-    gl.enable(gl.DEPTH_TEST);
-
-    // drawModelOffscreen(model, modelMatrix, vertexBuffer, projection, view);
-    // gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    // gl.viewport(0, 0, 600, 600);
-    // gl.clearColor(0.0, 0.0, 0.4, 1.0);
-    // gl.enable(gl.DEPTH_TEST);
-    // gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-    // drawModel(model, modelMatrix, vertexBuffer, vertexNormalBuffer, projection, view);
-
     // bind the shader
     gl.useProgram(mainShader);
 
@@ -823,6 +748,88 @@ function draw() {
 
     gl.drawArrays(gl.TRIANGLES, 0, numPoints);
     gl.disableVertexAttribArray(positionIndex);
+
+    var projection = world.camera.getProjection();
+    var view = world.camera.getView();
+    var modelMatrix = new THREE.Matrix4();
+    // modelMatrix.elements = matrix.elements;
+    var transform = new THREE.Matrix4().multiply(projection).multiply(view).multiply(modelMatrix);
+    
+    gl.viewport(0, 0, OFFSCREEN_WIDTH, OFFSCREEN_HEIGHT);
+    // gl.clearColor(1.0, 1.0, 1.0, 1.0);
+    gl.enable(gl.DEPTH_TEST);
+
+    for(var i = 0; i < world.renderedChunks.length; i++) {
+        let chunk = world.renderedChunks[i];
+        for(var j = 0; j < chunk.blocks.length; j++) {
+            let block = new Block(chunk.blocks[j]);
+            if(block.isSurrounded()) {
+                gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+                drawModelOffscreen(model, modelMatrix, vertexBuffer, projection, view);
+            }
+        }
+    }
+    
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    // gl.viewport(0, 0, 600, 400);
+    // gl.clearColor(0.0, 0.0, 0.4, 1.0);
+    gl.enable(gl.DEPTH_TEST);
+    // gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    // drawModel(model, modelMatrix, vertexBuffer, vertexNormalBuffer, projection, view);
+
+    gl.useProgram(lightingShader);
+    var positionIndex = gl.getAttribLocation(lightingShader, 'a_Position');
+    if (positionIndex < 0) {
+        console.log('Failed to get the storage location of a_Position');
+        return;
+    }
+    var normalIndex = gl.getAttribLocation(lightingShader, 'a_Normal');
+    if (normalIndex < 0) {
+        console.log('Failed to get the storage location of a_Normal');
+        return;
+    }
+    gl.enableVertexAttribArray(positionIndex);
+    gl.enableVertexAttribArray(normalIndex);
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+    gl.vertexAttribPointer(positionIndex, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexNormalBuffer);
+    gl.vertexAttribPointer(normalIndex, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+    var loc = gl.getUniformLocation(lightingShader, "model");
+    gl.uniformMatrix4fv(loc, false, modelMatrix.elements);
+    loc = gl.getUniformLocation(lightingShader, "view");
+    gl.uniformMatrix4fv(loc, false, view.elements);
+    loc = gl.getUniformLocation(lightingShader, "projection");
+    gl.uniformMatrix4fv(loc, false, projection.elements);
+    loc = gl.getUniformLocation(lightingShader, "normalMatrix");
+    gl.uniformMatrix3fv(loc, false, makeNormalMatrixElements(modelMatrix, view));
+    loc = gl.getUniformLocation(lightingShader, "lightPosition");
+    var lp = lightPosition	;
+    gl.uniform4f(loc, lp.x, lp.y, lp.z, lp.w);
+    loc = gl.getUniformLocation(lightingShader, "lightMVPMatrix");
+    var lightmvp = new THREE.Matrix4().multiply(projection).multiply(view).multiply(modelMatrix);
+    gl.uniformMatrix4fv(loc, false, lightmvp.elements);
+    loc = gl.getUniformLocation(lightingShader, "lightProperties");
+    gl.uniformMatrix3fv(loc, false, lightPropElements);
+    loc = gl.getUniformLocation(lightingShader, "materialProperties");
+    gl.uniformMatrix3fv(loc, false, matPropElements);
+    loc = gl.getUniformLocation(lightingShader, "shininess");
+    gl.uniform1f(loc, shininess);
+
+    var textureUnit = 1;
+    gl.activeTexture(gl.TEXTURE0 + textureUnit);
+    gl.bindTexture(gl.TEXTURE_2D, fbo.texture);
+    loc = gl.getUniformLocation(lightingShader, "sampler");
+    gl.uniform1i(loc, textureUnit);
+    loc = gl.getUniformLocation(lightingShader, "textureSize");
+    gl.uniform1f(loc, OFFSCREEN_WIDTH);
+
+    gl.drawArrays(gl.TRIANGLES, 0, model.numVertices);
+
+    gl.disableVertexAttribArray(positionIndex);
+    gl.disableVertexAttribArray(normalIndex);
+
     gl.useProgram(null);
 }
 
