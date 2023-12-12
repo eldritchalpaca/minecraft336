@@ -27,6 +27,17 @@ class Block extends CS336Object {
         setHighlightedBlock();
     }
 
+    placeBlockOnTop(type) {
+        if (!this.hasUpstairsNeighbor()) {
+            let b = new Block(this.x, this.y + 1, this.z, this.chunk, type);
+            this.chunk.addChild(b);
+            let blocks = b.getNeighbors();
+            for (let block of blocks) {
+                block.needsUpdate = true;
+            }
+        }
+    }
+
     equals(o) {
         return this.x == o.x && this.y == o.y && this.z == o.z && this.chunk.x == o.chunk.x && this.chunk.z == o.chunk.z;
     }

@@ -165,14 +165,6 @@ class World extends CS336Object {
     // invoke callback (possibly empty)
     this.drawObject(current);
 
-    // recurse through children, who will use the current matrix
-    // as their "world"
-    // for (var i = 0; i < this.children.length; ++i) {
-    //     let child = this.children[i];
-
-    //     child.render(current);
-    // }
-
     for (let i = 0; i < this.renderedChunks.length; ++i) {
         let chunk = this.renderedChunks[i];
         chunk.render(current);

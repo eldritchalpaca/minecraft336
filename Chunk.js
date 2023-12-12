@@ -37,10 +37,6 @@ class Chunk extends CS336Object {
         let lancunarity = 1.8715;
         let gain = 1.0 / lancunarity;
 
-        // let damper = changeScale(noise.perlin2(this.x, this.z), -0.5, 0.5, 1, 10);
-        //let damper = .15;
-        //console.log(damper);
-
         for (let x = this.x * CHUNK_SIZE_X; x < this.x * CHUNK_SIZE_X + CHUNK_SIZE_X; ++x) {
             for (let z = this.z * CHUNK_SIZE_Z; z < this.z * CHUNK_SIZE_Z + CHUNK_SIZE_Z; ++z) {
 
@@ -53,15 +49,9 @@ class Chunk extends CS336Object {
                     y += noise.perlin2(x * frequency, z * frequency) * amplitude;
                     frequency *= lancunarity;
                     amplitude *= gain;
-
-                    // let changeFactor = .05;
-                    // let scale = 15;
-                    // let y = perlin.get(x * changeFactor, z * changeFactor);
-                    // y = y * scale;
                 }
 
                 y = clamp(y, -0.75, 1);
-                //y = changeScale(y, -1, 1, 1, WORLD_HEIGHT - 1);
                 y = changeScale(y, -0.75, 1, this.biome.lowestPoint, this.biome.highestPoint);
 
                 y = Math.round(y);

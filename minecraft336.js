@@ -299,6 +299,12 @@ function handleMouseClick(event) {
         world.highlightedBlock.destroy();
         world.highlightedBlock = null;
     }
+
+    else if (event.button == 0 && world.highlightedBlock != null) {
+        world.highlightedBlock.placeBlockOnTop(BlockType.DIRT);
+    }
+
+    setHighlightedBlock();
 }
 
 /**
@@ -311,7 +317,6 @@ function handleMouseMove(event) {
 
     //yaw rotation
     world.camera.rotateOnAxis(movementX * -0.1, 0, 1, 0);
-
 
     let cameraMatrix = world.camera.getView();
     let strafeDirection = new THREE.Vector3();
@@ -350,19 +355,14 @@ function setHighlightedBlock() {
 
         let block = world.getBlock(Math.round(v.x), Math.round(v.y), Math.round(v.z))
 
-        if (world.highlightedBlock != null) {
+        if (world.highlightedBlock != null && block != null && !block.equals(world.highlightedBlock)) {
             world.highlightedBlock.isHighlighted = false;
             world.highlightedBlock = null;
         }
 
         if (block != null) {
             block.isHighlighted = true;
-            if (world.highlightedBlock != null) {
-                world.highlightedBlock.isHighlighted = false;
-            }
             world.highlightedBlock = block;
-           // console.log(getSideFacingCamera(block));
-           return;
         }
     }
 }
