@@ -16,7 +16,7 @@ var model;
 
 var world;
 let seed = 0.9396259012900186
-//random
+
 world = new World();
 
 //world = new World(seed, PLAINS);
