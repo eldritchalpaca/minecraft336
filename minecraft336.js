@@ -14,7 +14,12 @@ var textureHandles = [];
 var lightPosition = new THREE.Vector3(-1, 1, -1);
 var model;
 
-var world = new World();
+var world;
+
+//world = new World();
+
+//sick mountains
+world = new World(0.9396259012900186, ISLANDS);
 
 var bedrockImage = "./textures/bedrock64.png";
 var stoneImage = "./textures/stone64.png";
@@ -282,7 +287,7 @@ async function handleKeyPress(event) {
 function handleMouseClick(event) {
     console.log(event);
 
-    if (event.button == 0 && world.highlightedBlock != null) {
+    if (event.button == 2 && world.highlightedBlock != null) {
         world.highlightedBlock.destroy();
         world.highlightedBlock = null;
     }
@@ -508,6 +513,8 @@ function draw() {
 let canvas;
 async function main() {
     canvas = document.getElementById("theCanvas");
+    canvas.height = window.innerHeight;
+    canvas.width = canvas.height * 1.5
     gl = getGraphicsContext("theCanvas");
 
     await loadTextures();
