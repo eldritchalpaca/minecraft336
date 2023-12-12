@@ -17,7 +17,7 @@ var model;
 var world;
 let seed = 0.9396259012900186
 
-world = new World();
+//world = new World();
 
 //world = new World(seed, PLAINS);
 
@@ -25,7 +25,7 @@ world = new World();
 
 //world = new World(seed, MOUNTAIN);
 
-//world = new World(seed, ISLANDS);
+world = new World(seed, ISLANDS);
 
 //world = new World(seed, FOREST);
 
@@ -521,8 +521,8 @@ function draw() {
 let canvas;
 async function main() {
     canvas = document.getElementById("theCanvas");
-    // canvas.height = window.innerHeight;
-    // canvas.width = canvas.height * 1.5
+    canvas.height = window.innerHeight - 10;
+    canvas.width = canvas.height * 1.5
     gl = getGraphicsContext("theCanvas");
 
     await loadTextures();

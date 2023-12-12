@@ -26,9 +26,9 @@ const MOUNTAIN = {
     frequency : 0.025,
     top_block : BlockType.GRASS,
     under_block : BlockType.DIRT,
-    hasTrees : true,
+    hasTrees : false,
     treeRate : 100,
-    lowestPoint : SEA_LEVEL,
+    lowestPoint : 1,
     highestPoint : WORLD_HEIGHT - 1
 }
 
