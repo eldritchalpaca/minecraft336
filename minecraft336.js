@@ -17,7 +17,7 @@ var model;
 var world;
 let seed = 0.9396259012900186
 
-//world = new World();
+world = new World();
 
 //world = new World(seed, PLAINS);
 
@@ -25,7 +25,7 @@ let seed = 0.9396259012900186
 
 //world = new World(seed, MOUNTAIN);
 
-world = new World(seed, ISLANDS);
+//world = new World(seed, ISLANDS);
 
 //world = new World(seed, FOREST);
 
@@ -258,7 +258,9 @@ function getChar(event) {
 
 async function handleKeyPress(event) {
 
-    if (event.key = "[") {
+    var ch = getChar(event);
+
+    if (ch == '[') {
         if (!document.pointerLockElement) {
             await canvas.requestPointerLock();
             console.log("pointer lock on")
@@ -268,9 +270,9 @@ async function handleKeyPress(event) {
             console.log("pointer lock off")
         }
     }
-
-    var ch = getChar(event);
-    world.keyControl(ch);
+    else {
+        world.keyControl(ch);
+    }
 }
 
 function handleMouseClick(event) {
@@ -505,7 +507,7 @@ function draw() {
 let canvas;
 async function main() {
     canvas = document.getElementById("theCanvas");
-    canvas.height = window.innerHeight - 10;
+    canvas.height = window.innerHeight - 20;
     canvas.width = canvas.height * 1.5
     gl = getGraphicsContext("theCanvas");
 
